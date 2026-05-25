@@ -57,7 +57,7 @@ body {
 
 .actions { display: flex; gap: 8px; }
 
-button {
+button, #guess-btn {
   font: inherit;
   color: var(--fg);
   background: var(--accent);
@@ -67,9 +67,18 @@ button {
   cursor: pointer;
   transition: filter 120ms ease;
 }
-button:hover { filter: brightness(1.1); }
-button:active { transform: translateY(1px); }
+button:hover, #guess-btn:hover { filter: brightness(1.1); }
+button:active, #guess-btn:active { transform: translateY(1px); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
+#guess-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  font-weight: 600;
+}
 
 button.ghost {
   background: transparent;

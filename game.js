@@ -349,14 +349,14 @@ form.addEventListener("submit", (e) => {
   submitGuess(input.value);
 });
 
-// Prevent the Tentar button from stealing focus on tap (keeps mobile keyboard open)
+// The "Tentar" element is a <label for="guess-input">, so a tap re-focuses the
+// input rather than blurring it — Android keeps the soft keyboard open.
+// We submit via its click handler.
 const guessBtn = $("guess-btn");
-guessBtn.addEventListener("mousedown", (e) => e.preventDefault());
-guessBtn.addEventListener("touchstart", (e) => {
+guessBtn.addEventListener("click", (e) => {
   e.preventDefault();
-  // Fire submit ourselves since we suppressed the default tap → focus → click chain
   if (!input.disabled) form.requestSubmit();
-}, { passive: false });
+});
 
 input.addEventListener("input", () => {
   // Live-strip invalid chars so the prefix used by the hint stays clean.

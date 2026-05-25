@@ -47,7 +47,8 @@
         autocorrect="off"
         required
       />
-      <button type="submit" id="guess-btn" tabindex="-1">Tentar</button>
+      <label for="guess-input" id="guess-btn" role="button" tabindex="-1">Tentar</label>
+      <button type="submit" hidden aria-hidden="true"></button>
     </form>
 
     <p id="message" class="message" role="status"></p>
