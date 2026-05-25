@@ -1,0 +1,6 @@
+_raw_*.txt
+_raw_*.json
+_raw_*.js
+.DS_Store
+node_modules/
+.claude

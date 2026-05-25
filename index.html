@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#1f2330" />
+  <title>Entrelinhas — Adivinhe a palavra entre os limites</title>
+  <meta name="description" content="Jogo diário em português: adivinhe a palavra de 5 letras que está alfabeticamente entre dois limites." />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Entrelinhas</h1>
+    <div class="actions">
+      <button id="mode-toggle" class="ghost" title="Alternar modo de jogo">Aleatório</button>
+      <button id="help-btn" class="ghost" title="Como jogar" aria-label="Como jogar">?</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="meta">
+      <span id="puzzle-label">Palavra do dia</span>
+      <span id="puzzle-date"></span>
+      <span class="dot">·</span>
+      <span>Tentativas: <strong id="guesses-left">15</strong></span>
+    </div>
+
+    <div class="board" aria-live="polite">
+      <div id="lower-row" class="row bound-sentinel"></div>
+      <div id="target-row" class="row target target-hidden"></div>
+      <div id="upper-row" class="row bound-sentinel"></div>
+    </div>
+
+    <div id="alpha-hint" class="alpha" aria-label="Letras possíveis"></div>
+
+    <form id="guess-form" autocomplete="off">
+      <input
+        id="guess-input"
+        type="text"
+        inputmode="text"
+        maxlength="5"
+        pattern="[A-Za-zÀ-ÿ]{5}"
+        placeholder="palavra de 5 letras"
+        spellcheck="false"
+        autocapitalize="none"
+        autocorrect="off"
+        required
+      />
+      <button type="submit" id="guess-btn">Tentar</button>
+    </form>
+
+    <p id="message" class="message" role="status"></p>
+  </main>
+
+  <dialog id="help-dialog">
+    <h2>Como jogar</h2>
+    <p>Existe uma palavra secreta de 5 letras escondida em algum lugar do dicionário, entre <code>AAAAA</code> e <code>ZZZZZ</code>.</p>
+    <p>A cada palpite, o intervalo se aperta:</p>
+    <ul>
+      <li>se sua palavra vier <em>antes</em> da secreta, ela vira o novo limite de cima;</li>
+      <li>se vier <em>depois</em>, vira o novo limite de baixo.</li>
+    </ul>
+    <p>Ao lado de cada limite aparece quantas palavras do dicionário ainda existem entre ele e a secreta — <strong>1 palavra = 1 passo</strong>. Mais perto, melhor.</p>
+    <p>Em baixo do tabuleiro, o teclado mostra quais letras ainda fazem sentido como próximo caractere — letras que cairiam fora dos limites ficam apagadas. Palpites fora do intervalo são bloqueados.</p>
+    <p>Você tem <strong>15 tentativas</strong>. Acentos são ignorados (use só <code>a</code>–<code>z</code>).</p>
+    <p>Modo <strong>Palavra do dia</strong>: uma palavra por dia, igual para todo mundo. Modo <strong>Aleatório</strong>: jogue quantas vezes quiser.</p>
+    <form method="dialog"><button>Entendi</button></form>
+  </dialog>
+
+  <dialog id="end-dialog">
+    <h2 id="end-title"></h2>
+    <p id="end-body"></p>
+    <div class="end-actions">
+      <button id="share-btn">Compartilhar</button>
+      <button id="play-again-btn">Jogar de novo</button>
+      <form method="dialog"><button class="ghost">Fechar</button></form>
+    </div>
+  </dialog>
+
+  <script type="module" src="./game.js"></script>
+</body>
+</html>
