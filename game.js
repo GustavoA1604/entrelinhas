@@ -89,12 +89,14 @@ function upperBoundIdx(arr, x) {
   }
   return lo;
 }
-// Count of words in VALID strictly between a and b (a < b)
+// Distance between a guess and the target, measured in VALID dictionary words.
+// 1 = adjacent (no words between). Counts the guess itself plus every dictionary
+// word that sits strictly between guess and target.
 function distanceBetween(a, b) {
   if (!(a < b)) return 0;
   const i = upperBoundIdx(VALID_SORTED, a);
   const j = lowerBoundIdx(VALID_SORTED, b);
-  return Math.max(0, j - i);
+  return Math.max(0, j - i) + 1;
 }
 
 function pluralWords(n) {
