@@ -297,8 +297,11 @@ function submitGuess(raw) {
   render(word);
 
   if (state.done) {
-    setTimeout(showEndDialog, 350);
     input.disabled = true;
+    setTimeout(showEndDialog, 350);
+  } else {
+    // Keep the mobile keyboard open: refocus synchronously inside the gesture.
+    input.focus({ preventScroll: true });
   }
 }
 
@@ -343,6 +346,15 @@ form.addEventListener("submit", (e) => {
   e.preventDefault();
   submitGuess(input.value);
 });
+
+// Prevent the Tentar button from stealing focus on tap (keeps mobile keyboard open)
+const guessBtn = $("guess-btn");
+guessBtn.addEventListener("mousedown", (e) => e.preventDefault());
+guessBtn.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  // Fire submit ourselves since we suppressed the default tap → focus → click chain
+  if (!input.disabled) form.requestSubmit();
+}, { passive: false });
 
 input.addEventListener("input", () => {
   // Live-strip invalid chars so the prefix used by the hint stays clean.

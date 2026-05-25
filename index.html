@@ -38,15 +38,16 @@
         id="guess-input"
         type="text"
         inputmode="text"
+        enterkeyhint="send"
         maxlength="5"
         pattern="[A-Za-zÀ-ÿ]{5}"
-        placeholder="palavra de 5 letras"
+        placeholder="palavra de 5 letras (toque Enter / Ir)"
         spellcheck="false"
         autocapitalize="none"
         autocorrect="off"
         required
       />
-      <button type="submit" id="guess-btn">Tentar</button>
+      <button type="submit" id="guess-btn" tabindex="-1">Tentar</button>
     </form>
 
     <p id="message" class="message" role="status"></p>
