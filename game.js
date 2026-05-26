@@ -6,7 +6,7 @@ const STORAGE_KEY = "entrelinhas:daily";
 const SENTINEL_LOW = "aaaaa";
 const SENTINEL_HIGH = "zzzzz";
 
-// Sorted array of valid words for distance / range queries
+// Sorted array of valid words for distance and range queries
 const VALID_SORTED = [...VALID].sort();
 
 const $ = (id) => document.getElementById(id);
@@ -99,6 +99,13 @@ function distanceBetween(a, b) {
   return Math.max(0, j - i) + 1;
 }
 
+// Number of valid dictionary words strictly between lo and hi.
+function rangeSize(lo, hi) {
+  const i = upperBoundIdx(VALID_SORTED, lo);
+  const j = lowerBoundIdx(VALID_SORTED, hi);
+  return Math.max(0, j - i);
+}
+
 function pluralWords(n) {
   return n === 1 ? "1 palavra" : `${n.toLocaleString("pt-BR")} palavras`;
 }
@@ -143,7 +150,7 @@ function makeRowContent(row, word, classes, tagText) {
 }
 
 function render(justAddedWord = null) {
-  // Lower bound row (TOP — words alphabetically before the target)
+  // Lower bound row (TOP): words alphabetically before the target
   if (state.currentLower === SENTINEL_LOW) {
     makeRowContent(lowerRow, SENTINEL_LOW, "bound-sentinel", "?? palavras");
   } else {
@@ -160,7 +167,7 @@ function render(justAddedWord = null) {
     makeRowContent(targetRow, "?????", "target target-hidden", "secreta");
   }
 
-  // Upper bound row (BOTTOM — words alphabetically after the target)
+  // Upper bound row (BOTTOM): words alphabetically after the target
   if (state.currentUpper === SENTINEL_HIGH) {
     makeRowContent(upperRow, SENTINEL_HIGH, "bound-sentinel", "?? palavras");
   } else {
@@ -202,6 +209,7 @@ function setMessage(text, kind = "") {
 // --- game flow ---
 
 function startGame(mode) {
+  if (endDialog.open) endDialog.close();
   state.mode = mode;
   state.guesses = [];
   state.currentLower = SENTINEL_LOW;
@@ -307,14 +315,58 @@ function submitGuess(raw) {
   }
 }
 
+// Build the end-of-game summary. After each guess is applied, show the
+// number of dictionary words from the current lower bound to the target
+// and from the target to the current upper bound (always in that order),
+// so the player sees how the interval closed in from both sides.
+function buildSummaryLines({ includeWords } = { includeWords: true }) {
+  const n = state.guesses.length;
+  const lines = [];
+  let lo = SENTINEL_LOW, hi = SENTINEL_HIGH;
+  const fmt = (x) => x.toLocaleString("pt-BR");
+  for (const g of state.guesses) {
+    if (g.side === "lower" && g.word > lo) lo = g.word;
+    else if (g.side === "upper" && g.word < hi) hi = g.word;
+    const lowerDist = distanceBetween(lo, state.target);
+    const upperDist = distanceBetween(state.target, hi);
+    const arrow = g.side === "hit" ? "🟩" : g.side === "lower" ? "🔼" : "🔽";
+    const word = includeWords ? ` ${g.word}` : "";
+    if (g.side === "hit") {
+      lines.push(`${arrow}${word}  Sucesso em ${n} tentativa${n === 1 ? "" : "s"}`);
+    } else {
+      lines.push(`${arrow}${word}  ${fmt(lowerDist)} - ${fmt(upperDist)}`);
+    }
+  }
+  if (!state.won) {
+    lines.push(`❌ Não consegui em ${MAX_GUESSES} tentativas`);
+  }
+  return lines;
+}
+
+function modeLabel() {
+  return state.mode === "daily"
+    ? `Palavra do dia (${formatDate(state.dateKey)})`
+    : "Modo aleatório";
+}
+
 function showEndDialog() {
   if (state.won) {
     endTitle.textContent = "Você acertou! 🎉";
-    endBody.textContent = `A palavra era "${state.target}". Você usou ${state.guesses.length} tentativa${state.guesses.length === 1 ? "" : "s"}.`;
   } else {
     endTitle.textContent = "Fim de jogo";
-    endBody.textContent = `A palavra era "${state.target}".`;
   }
+  endBody.innerHTML = "";
+
+  const info = document.createElement("p");
+  info.textContent = `${modeLabel()} · a palavra era "${state.target}".`;
+  info.style.margin = "0 0 10px";
+  endBody.appendChild(info);
+
+  const pre = document.createElement("pre");
+  pre.className = "summary";
+  pre.textContent = buildSummaryLines().join("\n");
+  endBody.appendChild(pre);
+
   if (typeof endDialog.showModal === "function") endDialog.showModal();
 }
 
@@ -323,10 +375,7 @@ function buildShareText() {
     ? `Entrelinhas ${formatDate(state.dateKey)}`
     : "Entrelinhas (aleatório)";
   const score = state.won ? `${state.guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
-  const blocks = state.guesses
-    .map((g) => (g.side === "hit" ? "🟩" : g.side === "upper" ? "🔽" : "🔼"))
-    .join("");
-  return `${header} ${score}\n${blocks}`;
+  return `${header} ${score}\n${buildSummaryLines({ includeWords: false }).join("\n")}`;
 }
 
 async function share() {
@@ -338,7 +387,7 @@ async function share() {
     await navigator.clipboard.writeText(text);
     setMessage("Resultado copiado!", "success");
   } catch {
-    setMessage("Não consegui copiar — selecione e copie manualmente.", "error");
+    setMessage("Não consegui copiar. Selecione e copie manualmente.", "error");
   }
 }
 
@@ -350,7 +399,7 @@ form.addEventListener("submit", (e) => {
 });
 
 // The "Tentar" element is a <label for="guess-input">, so a tap re-focuses the
-// input rather than blurring it — Android keeps the soft keyboard open.
+// input rather than blurring it, so Android keeps the soft keyboard open.
 // We submit via its click handler.
 const guessBtn = $("guess-btn");
 guessBtn.addEventListener("click", (e) => {
@@ -378,6 +427,18 @@ playAgainBtn.addEventListener("click", () => {
   endDialog.close();
   startGame("random");
 });
+
+// If the tab is left open across midnight, restart the daily puzzle when the
+// user comes back so they see today's word instead of yesterday's end state.
+function maybeRolloverDaily() {
+  if (state.mode === "daily" && state.dateKey && state.dateKey !== todayKey()) {
+    startGame("daily");
+  }
+}
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) maybeRolloverDaily();
+});
+window.addEventListener("focus", maybeRolloverDaily);
 
 if (!localStorage.getItem("entrelinhas:seen-help")) {
   localStorage.setItem("entrelinhas:seen-help", "1");

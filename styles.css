@@ -53,6 +53,14 @@ body {
   font-size: 1.25rem;
   letter-spacing: 0.04em;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar h1 .logo {
+  height: 1.6em;
+  width: auto;
+  display: block;
 }
 
 .actions { display: flex; gap: 8px; }
@@ -252,6 +260,19 @@ dialog code {
   margin-top: 12px;
 }
 
+#end-body .summary {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  white-space: pre;
+  overflow-x: auto;
+}
+
 footer {
   text-align: center;
   padding: 16px;
@@ -261,4 +282,31 @@ footer {
 
 @media (max-width: 380px) {
   .row { font-size: 1rem; padding: 10px 12px; letter-spacing: 0.14em; }
+}
+
+/* Compact layout for short viewports (typically phones with the soft
+   keyboard open) so the whole board, alphabet and input fit without
+   scrolling. */
+@media (max-height: 760px) {
+  .topbar { padding: 6px 12px; }
+  .topbar h1 { font-size: 1.05rem; }
+  button, #guess-btn { padding: 7px 10px; }
+  main { padding: 8px 12px; gap: 8px; }
+  .meta { font-size: 0.8rem; gap: 6px; }
+  .board { gap: 4px; }
+  .row {
+    padding: 7px 12px;
+    font-size: 1rem;
+    letter-spacing: 0.14em;
+  }
+  .row .tag { font-size: 0.72rem; }
+  .alpha { gap: 3px; }
+  .alpha .letter {
+    min-width: 1.4em;
+    height: 1.4em;
+    padding: 0 4px;
+    font-size: 0.82rem;
+  }
+  #guess-input { padding: 8px 10px; font-size: 1rem; letter-spacing: 0.1em; }
+  .message { font-size: 0.85rem; min-height: 1.2em; }
 }
