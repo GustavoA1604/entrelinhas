@@ -10,37 +10,36 @@ const SENTINEL_HIGH = "zzzzz";
 const VALID_SORTED = [...VALID].sort();
 
 const $ = (id) => document.getElementById(id);
-const lowerRow = $("lower-row");
-const targetRow = $("target-row");
-const upperRow = $("upper-row");
-const alphaHint = $("alpha-hint");
-const input = $("guess-input");
-const form = $("guess-form");
-const msg = $("message");
-const guessesLeft = $("guesses-left");
-const puzzleLabel = $("puzzle-label");
-const puzzleDate = $("puzzle-date");
-const modeToggle = $("mode-toggle");
-const helpBtn = $("help-btn");
-const helpDialog = $("help-dialog");
-const endDialog = $("end-dialog");
-const endTitle = $("end-title");
-const endBody = $("end-body");
-const shareBtn = $("share-btn");
-const playAgainBtn = $("play-again-btn");
 
-const state = {
-  mode: "daily",
-  target: null,
-  guesses: [],         // [{word, side: 'upper'|'lower'|'hit'}]
-  currentLower: SENTINEL_LOW,
-  currentUpper: SENTINEL_HIGH,
-  done: false,
-  won: false,
-  dateKey: null,
-};
+function stripAccents(s) { return s.normalize("NFD").replace(/\p{M}/gu, ""); }
+function normalize(s) { return stripAccents(s).toLowerCase().trim(); }
 
-// --- helpers ---
+// Binary search: first index i where arr[i] >= x
+function lowerBoundIdx(arr, x) {
+  let lo = 0, hi = arr.length;
+  while (lo < hi) {
+    const m = (lo + hi) >> 1;
+    if (arr[m] < x) lo = m + 1; else hi = m;
+  }
+  return lo;
+}
+function upperBoundIdx(arr, x) {
+  let lo = 0, hi = arr.length;
+  while (lo < hi) {
+    const m = (lo + hi) >> 1;
+    if (arr[m] <= x) lo = m + 1; else hi = m;
+  }
+  return lo;
+}
+function distanceBetween(a, b) {
+  if (!(a < b)) return 0;
+  const i = upperBoundIdx(VALID_SORTED, a);
+  const j = lowerBoundIdx(VALID_SORTED, b);
+  return Math.max(0, j - i) + 1;
+}
+function pluralWords(n) {
+  return n === 1 ? "1 palavra" : `${n.toLocaleString("pt-BR")} palavras`;
+}
 
 function todayKey() {
   const d = new Date();
@@ -68,382 +67,281 @@ function pickTarget(seed) {
   const rng = seed ? seededRng(seed) : Math.random;
   return ANSWERS[Math.floor(rng() * ANSWERS.length)];
 }
-function stripAccents(s) { return s.normalize("NFD").replace(/\p{M}/gu, ""); }
-function normalize(s) { return stripAccents(s).toLowerCase().trim(); }
 
-// Binary search: first index i where arr[i] >= x
-function lowerBoundIdx(arr, x) {
-  let lo = 0, hi = arr.length;
-  while (lo < hi) {
-    const m = (lo + hi) >> 1;
-    if (arr[m] < x) lo = m + 1; else hi = m;
-  }
-  return lo;
-}
-// First index i where arr[i] > x
-function upperBoundIdx(arr, x) {
-  let lo = 0, hi = arr.length;
-  while (lo < hi) {
-    const m = (lo + hi) >> 1;
-    if (arr[m] <= x) lo = m + 1; else hi = m;
-  }
-  return lo;
-}
-// Distance between a guess and the target, measured in VALID dictionary words.
-// 1 = adjacent (no words between). Counts the guess itself plus every dictionary
-// word that sits strictly between guess and target.
-function distanceBetween(a, b) {
-  if (!(a < b)) return 0;
-  const i = upperBoundIdx(VALID_SORTED, a);
-  const j = lowerBoundIdx(VALID_SORTED, b);
-  return Math.max(0, j - i) + 1;
-}
+export function initClassic({ onBack } = {}) {
+  const lowerRow = $("lower-row");
+  const targetRow = $("target-row");
+  const upperRow = $("upper-row");
+  const alphaHint = $("alpha-hint");
+  const input = $("guess-input");
+  const form = $("guess-form");
+  const msg = $("message");
+  const guessesLeft = $("guesses-left");
+  const puzzleLabel = $("puzzle-label");
+  const puzzleDate = $("puzzle-date");
+  const modeToggle = $("mode-toggle");
+  const helpBtn = $("help-btn");
+  const helpDialog = $("help-dialog");
+  const endDialog = $("end-dialog");
+  const endTitle = $("end-title");
+  const endBody = $("end-body");
+  const shareBtn = $("share-btn");
+  const playAgainBtn = $("play-again-btn");
 
-// Number of valid dictionary words strictly between lo and hi.
-function rangeSize(lo, hi) {
-  const i = upperBoundIdx(VALID_SORTED, lo);
-  const j = lowerBoundIdx(VALID_SORTED, hi);
-  return Math.max(0, j - i);
-}
-
-function pluralWords(n) {
-  return n === 1 ? "1 palavra" : `${n.toLocaleString("pt-BR")} palavras`;
-}
-
-// --- bounds derivation ---
-
-function recomputeBounds() {
-  let lo = SENTINEL_LOW, up = SENTINEL_HIGH;
-  for (const g of state.guesses) {
-    if (g.side === "lower" && g.word > lo) lo = g.word;
-    else if (g.side === "upper" && g.word < up) up = g.word;
-  }
-  state.currentLower = lo;
-  state.currentUpper = up;
-}
-
-// Can any 5-letter string starting with prefix+c lie strictly between currentLower and currentUpper?
-function isLetterValid(prefix, c) {
-  const k = prefix.length;
-  if (k >= 5) return false;
-  const pad = 5 - k - 1;
-  const prefixLo = prefix + c + "a".repeat(pad);
-  const prefixHi = prefix + c + "z".repeat(pad);
-  return prefixHi > state.currentLower && prefixLo < state.currentUpper;
-}
-
-// --- rendering ---
-
-function makeRowContent(row, word, classes, tagText) {
-  row.className = "row " + classes;
-  row.innerHTML = "";
-
-  const wordSpan = document.createElement("span");
-  wordSpan.className = "word";
-  wordSpan.textContent = word;
-  row.appendChild(wordSpan);
-
-  const tag = document.createElement("span");
-  tag.className = "tag";
-  tag.textContent = tagText;
-  row.appendChild(tag);
-}
-
-function render(justAddedWord = null) {
-  // Lower bound row (TOP): words alphabetically before the target
-  if (state.currentLower === SENTINEL_LOW) {
-    makeRowContent(lowerRow, SENTINEL_LOW, "bound-sentinel", "?? palavras");
-  } else {
-    const d = distanceBetween(state.currentLower, state.target);
-    makeRowContent(lowerRow, state.currentLower, "bound-guess lower", pluralWords(d));
-  }
-
-  // Target row (middle)
-  if (state.done && state.won) {
-    makeRowContent(targetRow, state.target, "target target-revealed-win", "acertou!");
-  } else if (state.done) {
-    makeRowContent(targetRow, state.target, "target target-revealed-loss", "era esta");
-  } else {
-    makeRowContent(targetRow, "?????", "target target-hidden", "secreta");
-  }
-
-  // Upper bound row (BOTTOM): words alphabetically after the target
-  if (state.currentUpper === SENTINEL_HIGH) {
-    makeRowContent(upperRow, SENTINEL_HIGH, "bound-sentinel", "?? palavras");
-  } else {
-    const d = distanceBetween(state.target, state.currentUpper);
-    makeRowContent(upperRow, state.currentUpper, "bound-guess upper", pluralWords(d));
-  }
-
-  // Just-added animation
-  for (const row of [lowerRow, upperRow, targetRow]) {
-    row.classList.remove("just-added");
-  }
-  if (justAddedWord) {
-    if (justAddedWord === state.target) targetRow.classList.add("just-added");
-    else if (state.currentLower === justAddedWord) lowerRow.classList.add("just-added");
-    else if (state.currentUpper === justAddedWord) upperRow.classList.add("just-added");
-  }
-
-  guessesLeft.textContent = MAX_GUESSES - state.guesses.length;
-  renderAlphabet();
-}
-
-function renderAlphabet() {
-  const prefix = normalize(input.value);
-  alphaHint.innerHTML = "";
-  for (let i = 0; i < 26; i++) {
-    const c = String.fromCharCode(97 + i);
-    const span = document.createElement("span");
-    span.className = "letter " + (isLetterValid(prefix, c) ? "enabled" : "disabled");
-    span.textContent = c;
-    alphaHint.appendChild(span);
-  }
-}
-
-function setMessage(text, kind = "") {
-  msg.textContent = text;
-  msg.className = "message" + (kind ? " " + kind : "");
-}
-
-// --- game flow ---
-
-function startGame(mode) {
-  if (endDialog.open) endDialog.close();
-  state.mode = mode;
-  state.guesses = [];
-  state.currentLower = SENTINEL_LOW;
-  state.currentUpper = SENTINEL_HIGH;
-  state.done = false;
-  state.won = false;
-
-  if (mode === "daily") {
-    state.dateKey = todayKey();
-    state.target = pickTarget(state.dateKey);
-    puzzleLabel.textContent = "Palavra do dia";
-    puzzleDate.textContent = formatDate(state.dateKey);
-    modeToggle.textContent = "Aleatório";
-    const saved = loadDaily();
-    if (saved && saved.dateKey === state.dateKey && saved.target === state.target) {
-      state.guesses = saved.guesses || [];
-      state.done = !!saved.done;
-      state.won = !!saved.won;
-      recomputeBounds();
-    }
-  } else {
-    state.dateKey = null;
-    state.target = pickTarget(null);
-    puzzleLabel.textContent = "Modo aleatório";
-    puzzleDate.textContent = "";
-    modeToggle.textContent = "Palavra do dia";
-  }
-
-  setMessage("");
-  input.value = "";
-  input.disabled = state.done;
-  render();
-  if (state.done) showEndDialog();
-}
-
-function loadDaily() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; }
-}
-
-function saveDaily() {
-  if (state.mode !== "daily") return;
-  const payload = {
-    dateKey: state.dateKey,
-    target: state.target,
-    guesses: state.guesses,
-    done: state.done,
-    won: state.won,
+  const state = {
+    mode: "daily",
+    target: null,
+    guesses: [],
+    currentLower: SENTINEL_LOW,
+    currentUpper: SENTINEL_HIGH,
+    done: false,
+    won: false,
+    dateKey: null,
   };
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch {}
-}
 
-function submitGuess(raw) {
-  if (state.done) return;
-  const word = normalize(raw);
-
-  if (!/^[a-z]{5}$/.test(word)) {
-    setMessage("Use 5 letras (a–z).", "error");
-    return;
-  }
-  if (!VALID.has(word)) {
-    setMessage(`"${word}" não está no dicionário.`, "error");
-    return;
-  }
-  if (state.guesses.some((g) => g.word === word)) {
-    setMessage("Você já tentou essa palavra.", "error");
-    return;
-  }
-  // Block guesses outside current known bounds
-  if (word !== state.target && !(word > state.currentLower && word < state.currentUpper)) {
-    setMessage(`"${word}" está fora dos limites atuais.`, "error");
-    return;
+  function recomputeBounds() {
+    let lo = SENTINEL_LOW, up = SENTINEL_HIGH;
+    for (const g of state.guesses) {
+      if (g.side === "lower" && g.word > lo) lo = g.word;
+      else if (g.side === "upper" && g.word < up) up = g.word;
+    }
+    state.currentLower = lo;
+    state.currentUpper = up;
   }
 
-  let side;
-  if (word === state.target) {
-    side = "hit";
-    state.done = true;
-    state.won = true;
-  } else if (word > state.target) {
-    side = "upper";
-  } else {
-    side = "lower";
-  }
-  state.guesses.push({ word, side });
-  recomputeBounds();
-
-  if (!state.won && state.guesses.length >= MAX_GUESSES) {
-    state.done = true;
-    state.won = false;
+  function isLetterValid(prefix, c) {
+    const k = prefix.length;
+    if (k >= 5) return false;
+    const pad = 5 - k - 1;
+    const prefixLo = prefix + c + "a".repeat(pad);
+    const prefixHi = prefix + c + "z".repeat(pad);
+    return prefixHi > state.currentLower && prefixLo < state.currentUpper;
   }
 
-  input.value = "";
-  setMessage("");
-  saveDaily();
-  render(word);
-
-  if (state.done) {
-    input.disabled = true;
-    setTimeout(showEndDialog, 350);
-  } else {
-    // Keep the mobile keyboard open: refocus synchronously inside the gesture.
-    input.focus({ preventScroll: true });
+  function makeRowContent(row, word, classes, tagText) {
+    row.className = "row " + classes;
+    row.innerHTML = "";
+    const wordSpan = document.createElement("span");
+    wordSpan.className = "word";
+    wordSpan.textContent = word;
+    row.appendChild(wordSpan);
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = tagText;
+    row.appendChild(tag);
   }
-}
 
-// Build the end-of-game summary. After each guess is applied, show the
-// number of dictionary words from the current lower bound to the target
-// and from the target to the current upper bound (always in that order),
-// so the player sees how the interval closed in from both sides.
-function buildSummaryLines({ includeWords } = { includeWords: true }) {
-  const n = state.guesses.length;
-  const lines = [];
-  let lo = SENTINEL_LOW, hi = SENTINEL_HIGH;
-  const fmt = (x) => x.toLocaleString("pt-BR");
-  for (const g of state.guesses) {
-    if (g.side === "lower" && g.word > lo) lo = g.word;
-    else if (g.side === "upper" && g.word < hi) hi = g.word;
-    const lowerDist = distanceBetween(lo, state.target);
-    const upperDist = distanceBetween(state.target, hi);
-    const arrow = g.side === "hit" ? "🟩" : g.side === "lower" ? "🔼" : "🔽";
-    const word = includeWords ? ` ${g.word}` : "";
-    if (g.side === "hit") {
-      lines.push(`${arrow}${word}  Sucesso em ${n} tentativa${n === 1 ? "" : "s"}`);
+  function render(justAddedWord = null) {
+    if (state.currentLower === SENTINEL_LOW) {
+      makeRowContent(lowerRow, SENTINEL_LOW, "bound-sentinel", "?? palavras");
     } else {
-      lines.push(`${arrow}${word}  ${fmt(lowerDist)} - ${fmt(upperDist)}`);
+      const d = distanceBetween(state.currentLower, state.target);
+      makeRowContent(lowerRow, state.currentLower, "bound-guess lower", pluralWords(d));
+    }
+
+    if (state.done && state.won) {
+      makeRowContent(targetRow, state.target, "target target-revealed-win", "acertou!");
+    } else if (state.done) {
+      makeRowContent(targetRow, state.target, "target target-revealed-loss", "era esta");
+    } else {
+      makeRowContent(targetRow, "?????", "target target-hidden", "secreta");
+    }
+
+    if (state.currentUpper === SENTINEL_HIGH) {
+      makeRowContent(upperRow, SENTINEL_HIGH, "bound-sentinel", "?? palavras");
+    } else {
+      const d = distanceBetween(state.target, state.currentUpper);
+      makeRowContent(upperRow, state.currentUpper, "bound-guess upper", pluralWords(d));
+    }
+
+    for (const row of [lowerRow, upperRow, targetRow]) row.classList.remove("just-added");
+    if (justAddedWord) {
+      if (justAddedWord === state.target) targetRow.classList.add("just-added");
+      else if (state.currentLower === justAddedWord) lowerRow.classList.add("just-added");
+      else if (state.currentUpper === justAddedWord) upperRow.classList.add("just-added");
+    }
+
+    guessesLeft.textContent = MAX_GUESSES - state.guesses.length;
+    renderAlphabet();
+  }
+
+  function renderAlphabet() {
+    const prefix = normalize(input.value);
+    alphaHint.innerHTML = "";
+    for (let i = 0; i < 26; i++) {
+      const c = String.fromCharCode(97 + i);
+      const span = document.createElement("span");
+      span.className = "letter " + (isLetterValid(prefix, c) ? "enabled" : "disabled");
+      span.textContent = c;
+      alphaHint.appendChild(span);
     }
   }
-  if (!state.won) {
-    lines.push(`❌ Não consegui em ${MAX_GUESSES} tentativas`);
+
+  function setMessage(text, kind = "") {
+    msg.textContent = text;
+    msg.className = "message" + (kind ? " " + kind : "");
   }
-  return lines;
-}
 
-function modeLabel() {
-  return state.mode === "daily"
-    ? `Palavra do dia (${formatDate(state.dateKey)})`
-    : "Modo aleatório";
-}
+  function startGame(mode) {
+    if (endDialog.open) endDialog.close();
+    state.mode = mode;
+    state.guesses = [];
+    state.currentLower = SENTINEL_LOW;
+    state.currentUpper = SENTINEL_HIGH;
+    state.done = false;
+    state.won = false;
 
-function showEndDialog() {
-  if (state.won) {
-    endTitle.textContent = "Você acertou! 🎉";
-  } else {
-    endTitle.textContent = "Fim de jogo";
+    if (mode === "daily") {
+      state.dateKey = todayKey();
+      state.target = pickTarget(state.dateKey);
+      puzzleLabel.textContent = "Palavra do dia";
+      puzzleDate.textContent = formatDate(state.dateKey);
+      modeToggle.textContent = "Aleatório";
+      const saved = loadDaily();
+      if (saved && saved.dateKey === state.dateKey && saved.target === state.target) {
+        state.guesses = saved.guesses || [];
+        state.done = !!saved.done;
+        state.won = !!saved.won;
+        recomputeBounds();
+      }
+    } else {
+      state.dateKey = null;
+      state.target = pickTarget(null);
+      puzzleLabel.textContent = "Modo aleatório";
+      puzzleDate.textContent = "";
+      modeToggle.textContent = "Palavra do dia";
+    }
+
+    setMessage("");
+    input.value = "";
+    input.disabled = state.done;
+    render();
+    if (state.done) showEndDialog();
   }
-  endBody.innerHTML = "";
 
-  const info = document.createElement("p");
-  info.textContent = `${modeLabel()} · a palavra era "${state.target}".`;
-  info.style.margin = "0 0 10px";
-  endBody.appendChild(info);
-
-  const pre = document.createElement("pre");
-  pre.className = "summary";
-  pre.textContent = buildSummaryLines().join("\n");
-  endBody.appendChild(pre);
-
-  if (typeof endDialog.showModal === "function") endDialog.showModal();
-}
-
-function buildShareText() {
-  const header = state.mode === "daily"
-    ? `Entrelinhas ${formatDate(state.dateKey)}`
-    : "Entrelinhas (aleatório)";
-  const score = state.won ? `${state.guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
-  return `${header} ${score}\n${buildSummaryLines({ includeWords: false }).join("\n")}`;
-}
-
-async function share() {
-  const text = buildShareText();
-  if (navigator.share) {
-    try { await navigator.share({ text }); return; } catch {}
+  function loadDaily() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; }
   }
-  try {
-    await navigator.clipboard.writeText(text);
-    setMessage("Resultado copiado!", "success");
-  } catch {
-    setMessage("Não consegui copiar. Selecione e copie manualmente.", "error");
+  function saveDaily() {
+    if (state.mode !== "daily") return;
+    const payload = { dateKey: state.dateKey, target: state.target, guesses: state.guesses, done: state.done, won: state.won };
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch {}
   }
-}
 
-// --- wiring ---
+  function submitGuess(raw) {
+    if (state.done) return;
+    const word = normalize(raw);
+    if (!/^[a-z]{5}$/.test(word)) { setMessage("Use 5 letras (a–z).", "error"); return; }
+    if (!VALID.has(word)) { setMessage(`"${word}" não está no dicionário.`, "error"); return; }
+    if (state.guesses.some((g) => g.word === word)) { setMessage("Você já tentou essa palavra.", "error"); return; }
+    if (word !== state.target && !(word > state.currentLower && word < state.currentUpper)) {
+      setMessage(`"${word}" está fora dos limites atuais.`, "error");
+      return;
+    }
 
-form.addEventListener("submit", (e) => {
-  e.preventDefault();
-  submitGuess(input.value);
-});
+    let side;
+    if (word === state.target) { side = "hit"; state.done = true; state.won = true; }
+    else if (word > state.target) side = "upper";
+    else side = "lower";
+    state.guesses.push({ word, side });
+    recomputeBounds();
 
-// The "Tentar" element is a <label for="guess-input">, so a tap re-focuses the
-// input rather than blurring it, so Android keeps the soft keyboard open.
-// We submit via its click handler.
-const guessBtn = $("guess-btn");
-guessBtn.addEventListener("click", (e) => {
-  e.preventDefault();
-  if (!input.disabled) form.requestSubmit();
-});
+    if (!state.won && state.guesses.length >= MAX_GUESSES) { state.done = true; state.won = false; }
 
-input.addEventListener("input", () => {
-  // Live-strip invalid chars so the prefix used by the hint stays clean.
-  const cleaned = normalize(input.value).slice(0, 5);
-  if (cleaned !== input.value) input.value = cleaned;
-  renderAlphabet();
-});
+    input.value = "";
+    setMessage("");
+    saveDaily();
+    render(word);
 
-modeToggle.addEventListener("click", () => {
-  startGame(state.mode === "daily" ? "random" : "daily");
-});
-
-helpBtn.addEventListener("click", () => {
-  if (typeof helpDialog.showModal === "function") helpDialog.showModal();
-});
-
-shareBtn.addEventListener("click", share);
-playAgainBtn.addEventListener("click", () => {
-  endDialog.close();
-  startGame("random");
-});
-
-// If the tab is left open across midnight, restart the daily puzzle when the
-// user comes back so they see today's word instead of yesterday's end state.
-function maybeRolloverDaily() {
-  if (state.mode === "daily" && state.dateKey && state.dateKey !== todayKey()) {
-    startGame("daily");
+    if (state.done) {
+      input.disabled = true;
+      setTimeout(showEndDialog, 350);
+    } else {
+      input.focus({ preventScroll: true });
+    }
   }
-}
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) maybeRolloverDaily();
-});
-window.addEventListener("focus", maybeRolloverDaily);
 
-if (!localStorage.getItem("entrelinhas:seen-help")) {
-  localStorage.setItem("entrelinhas:seen-help", "1");
-  setTimeout(() => helpDialog.showModal?.(), 200);
-}
+  function buildSummaryLines({ includeWords } = { includeWords: true }) {
+    const n = state.guesses.length;
+    const lines = [];
+    let lo = SENTINEL_LOW, hi = SENTINEL_HIGH;
+    const fmt = (x) => x.toLocaleString("pt-BR");
+    for (const g of state.guesses) {
+      if (g.side === "lower" && g.word > lo) lo = g.word;
+      else if (g.side === "upper" && g.word < hi) hi = g.word;
+      const lowerDist = distanceBetween(lo, state.target);
+      const upperDist = distanceBetween(state.target, hi);
+      const arrow = g.side === "hit" ? "🟩" : g.side === "lower" ? "🔼" : "🔽";
+      const word = includeWords ? ` ${g.word}` : "";
+      if (g.side === "hit") {
+        lines.push(`${arrow}${word}  Sucesso em ${n} tentativa${n === 1 ? "" : "s"}`);
+      } else {
+        lines.push(`${arrow}${word}  ${fmt(lowerDist)} - ${fmt(upperDist)}`);
+      }
+    }
+    if (!state.won) lines.push(`❌ Não consegui em ${MAX_GUESSES} tentativas`);
+    return lines;
+  }
 
-startGame("daily");
-input.focus();
+  function modeLabel() {
+    return state.mode === "daily" ? `Palavra do dia (${formatDate(state.dateKey)})` : "Modo aleatório";
+  }
+
+  function showEndDialog() {
+    endTitle.textContent = state.won ? "Você acertou! 🎉" : "Fim de jogo";
+    endBody.innerHTML = "";
+    const info = document.createElement("p");
+    info.textContent = `${modeLabel()} · a palavra era "${state.target}".`;
+    info.style.margin = "0 0 10px";
+    endBody.appendChild(info);
+    const pre = document.createElement("pre");
+    pre.className = "summary";
+    pre.textContent = buildSummaryLines().join("\n");
+    endBody.appendChild(pre);
+    if (typeof endDialog.showModal === "function") endDialog.showModal();
+  }
+
+  function buildShareText() {
+    const header = state.mode === "daily" ? `Entrelinhas ${formatDate(state.dateKey)}` : "Entrelinhas (aleatório)";
+    const score = state.won ? `${state.guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
+    return `${header} ${score}\n${buildSummaryLines({ includeWords: false }).join("\n")}`;
+  }
+
+  async function share() {
+    const text = buildShareText();
+    if (navigator.share) { try { await navigator.share({ text }); return; } catch {} }
+    try {
+      await navigator.clipboard.writeText(text);
+      setMessage("Resultado copiado!", "success");
+    } catch {
+      setMessage("Não consegui copiar. Selecione e copie manualmente.", "error");
+    }
+  }
+
+  form.addEventListener("submit", (e) => { e.preventDefault(); submitGuess(input.value); });
+  const guessBtn = $("guess-btn");
+  guessBtn.addEventListener("click", (e) => { e.preventDefault(); if (!input.disabled) form.requestSubmit(); });
+  input.addEventListener("input", () => {
+    const cleaned = normalize(input.value).slice(0, 5);
+    if (cleaned !== input.value) input.value = cleaned;
+    renderAlphabet();
+  });
+  modeToggle.addEventListener("click", () => { startGame(state.mode === "daily" ? "random" : "daily"); });
+  helpBtn.addEventListener("click", () => { if (typeof helpDialog.showModal === "function") helpDialog.showModal(); });
+  shareBtn.addEventListener("click", share);
+  playAgainBtn.addEventListener("click", () => { endDialog.close(); startGame("random"); });
+
+  function maybeRolloverDaily() {
+    if (state.mode === "daily" && state.dateKey && state.dateKey !== todayKey()) startGame("daily");
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) maybeRolloverDaily(); });
+  window.addEventListener("focus", maybeRolloverDaily);
+
+  return {
+    start(mode) {
+      startGame(mode);
+      input.focus({ preventScroll: true });
+    },
+    focus() { input.focus({ preventScroll: true }); },
+  };
+}

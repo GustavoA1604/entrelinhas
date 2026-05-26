@@ -284,6 +284,195 @@ footer {
   .row { font-size: 1rem; padding: 10px 12px; letter-spacing: 0.14em; }
 }
 
+/* ====================== Views (menu / classic / crossword) ====================== */
+.view { display: flex; flex-direction: column; min-height: 100vh; }
+.view[hidden] { display: none; }
+
+.back-btn {
+  padding: 4px 10px;
+  margin-right: 6px;
+  font-size: 1rem;
+  line-height: 1;
+}
+.topbar h1 { gap: 4px; }
+
+/* ====================== Menu ====================== */
+.menu-main {
+  flex: 1;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.menu-intro {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+.menu-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 640px) {
+  .menu-grid { grid-template-columns: 1fr 1fr; }
+}
+.menu-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.menu-card h2 { margin: 0; font-size: 1.15rem; }
+.menu-card p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.menu-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+/* ====================== Crossword view ====================== */
+.crossword-main {
+  flex: 1;
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.crossword-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 720px) {
+  .crossword-layout {
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.crossword-grid-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: auto;
+}
+.crossword-grid {
+  --cw-cell: 40px;
+  display: grid;
+  gap: 2px;
+}
+@media (max-width: 480px) {
+  .crossword-grid { --cw-cell: 30px; }
+}
+
+.cw-cell {
+  width: var(--cw-cell);
+  height: var(--cw-cell);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: calc(var(--cw-cell) * 0.5);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+.cw-cell.cw-empty {
+  background: transparent;
+  border-color: transparent;
+}
+.cw-cell.cw-solved {
+  background: color-mix(in srgb, var(--ok) 28%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--ok) 55%, var(--border));
+}
+
+/* ====================== Crossword side list ====================== */
+.crossword-side {
+  display: flex;
+  flex-direction: column;
+}
+.cw-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.cw-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.cw-row .word { display: inline-block; }
+.cw-row .tag,
+.cw-row .tags {
+  font-family: system-ui, sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: var(--muted);
+  justify-self: end;
+  text-align: right;
+}
+.cw-row .tags {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cw-row.cw-sentinel { color: var(--muted); }
+.cw-row.cw-group { color: var(--muted); background: transparent; border-style: dashed; }
+.cw-row.cw-guess { border-color: var(--accent); }
+.cw-row.cw-guess .tag { color: var(--accent); font-weight: 600; }
+
+#cw-guess-form { display: flex; gap: 8px; }
+#cw-guess-input {
+  flex: 1;
+  padding: 12px 14px;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  letter-spacing: 0.15em;
+  text-transform: lowercase;
+  background: var(--bg-2);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+}
+#cw-guess-input:focus { border-color: var(--accent); }
+#cw-guess-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  font-weight: 600;
+}
+
+
 /* Compact layout for short viewports (typically phones with the soft
    keyboard open) so the whole board, alphabet and input fit without
    scrolling. */
