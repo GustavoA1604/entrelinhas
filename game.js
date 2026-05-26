@@ -231,11 +231,12 @@ export function initClassic({ onBack } = {}) {
   function submitGuess(raw) {
     if (state.done) return;
     const word = normalize(raw);
-    if (!/^[a-z]{5}$/.test(word)) { setMessage("Use 5 letras (a–z).", "error"); return; }
-    if (!VALID.has(word)) { setMessage(`"${word}" não está no dicionário.`, "error"); return; }
-    if (state.guesses.some((g) => g.word === word)) { setMessage("Você já tentou essa palavra.", "error"); return; }
+    const fail = (text) => { setMessage(text, "error"); input.focus({ preventScroll: true }); };
+    if (!/^[a-z]{5}$/.test(word)) { fail("Use 5 letras (a–z)."); return; }
+    if (!VALID.has(word)) { fail(`"${word}" não está no dicionário.`); return; }
+    if (state.guesses.some((g) => g.word === word)) { fail("Você já tentou essa palavra."); return; }
     if (word !== state.target && !(word > state.currentLower && word < state.currentUpper)) {
-      setMessage(`"${word}" está fora dos limites atuais.`, "error");
+      fail(`"${word}" está fora dos limites atuais.`);
       return;
     }
 

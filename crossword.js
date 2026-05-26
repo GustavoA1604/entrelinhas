@@ -432,19 +432,20 @@ export function initCrossword({ onBack } = {}) {
   function submitGuess(raw) {
     if (state.done) return;
     const word = normalize(raw);
-    if (!/^[a-z]{5}$/.test(word)) { setMessage("Use 5 letras (a–z).", "error"); return; }
+    const fail = (text) => { setMessage(text, "error"); input.focus({ preventScroll: true }); };
+    if (!/^[a-z]{5}$/.test(word)) { fail("Use 5 letras (a–z)."); return; }
     if (!VALID.has(word) && !state.secrets.includes(word)) {
-      setMessage(`"${word}" não está no dicionário.`, "error"); return;
+      fail(`"${word}" não está no dicionário.`); return;
     }
     if (state.guesses.some((g) => g.word === word)) {
-      setMessage("Você já tentou essa palavra.", "error"); return;
+      fail("Você já tentou essa palavra."); return;
     }
     const isSecret = state.secrets.includes(word) && !state.solvedSet.has(word);
 
     if (!isSecret) {
       const { liveGaps } = computeList();
       if (!isWordInLiveGap(word, liveGaps)) {
-        setMessage(`"${word}" está fora dos limites atuais.`, "error");
+        fail(`"${word}" está fora dos limites atuais.`);
         return;
       }
     }

@@ -498,4 +498,14 @@ footer {
   }
   #guess-input { padding: 8px 10px; font-size: 1rem; letter-spacing: 0.1em; }
   .message { font-size: 0.85rem; min-height: 1.2em; }
+
+  /* Crossword: same compact treatment */
+  .crossword-main { padding: 8px 12px; gap: 8px; }
+  .crossword-layout { gap: 8px; }
+  .crossword-grid-wrap { padding: 4px; }
+  .crossword-grid { --cw-cell: 26px; gap: 1px; }
+  .cw-list { gap: 3px; max-height: 32vh; }
+  .cw-row { padding: 5px 10px; font-size: 0.88rem; letter-spacing: 0.1em; }
+  .cw-row .tag, .cw-row .tags { font-size: 0.7rem; }
+  #cw-guess-input { padding: 8px 10px; font-size: 1rem; letter-spacing: 0.1em; }
 }
