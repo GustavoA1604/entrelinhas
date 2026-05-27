@@ -4,3 +4,4 @@ _raw_*.js
 .DS_Store
 node_modules/
 .claude
+local/

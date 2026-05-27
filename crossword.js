@@ -549,10 +549,51 @@ export function initCrossword({ onBack } = {}) {
     if (typeof endDialog.showModal === "function") endDialog.showModal();
   }
 
+  function buildGridText() {
+    if (state.placed.length === 0) return "";
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const p of state.placed) {
+      for (let i = 0; i < p.word.length; i++) {
+        const cx = p.dir === "H" ? p.x + i : p.x;
+        const cy = p.dir === "H" ? p.y : p.y + i;
+        if (cx < minX) minX = cx;
+        if (cx > maxX) maxX = cx;
+        if (cy < minY) minY = cy;
+        if (cy > maxY) maxY = cy;
+      }
+    }
+    const W = maxX - minX + 1, H = maxY - minY + 1;
+    const cells = Array.from({ length: H }, () => Array.from({ length: W }, () => null));
+    for (const p of state.placed) {
+      const isSolved = state.solvedSet.has(p.word);
+      for (let i = 0; i < p.word.length; i++) {
+        const cx = (p.dir === "H" ? p.x + i : p.x) - minX;
+        const cy = (p.dir === "H" ? p.y : p.y + i) - minY;
+        const cur = cells[cy][cx] || { letter: p.word[i], solved: false };
+        cur.letter = p.word[i];
+        cur.solved = cur.solved || isSolved;
+        cells[cy][cx] = cur;
+      }
+    }
+    const rows = [];
+    for (let y = 0; y < H; y++) {
+      let line = "";
+      for (let x = 0; x < W; x++) {
+        const c = cells[y][x];
+        if (!c) line += "  ";
+        else if (c.solved) line += c.letter.toUpperCase() + " ";
+        else line += "· ";
+      }
+      rows.push(line.trimEnd());
+    }
+    return rows.join("\n");
+  }
+
   function buildShareText() {
     const header = state.mode === "daily" ? `Entrelinhas Cruzadas ${formatDate(state.dateKey)}` : "Entrelinhas Cruzadas (aleatório)";
     const score = `${state.solvedSet.size}/${state.secrets.length} em ${state.guesses.length}/${MAX_GUESSES}`;
-    return `${header}\n${score}`;
+    const gridText = buildGridText();
+    return `${header}\n${score}\n\n\`\`\`\n${gridText}\n\`\`\``;
   }
   async function share() {
     const text = buildShareText();

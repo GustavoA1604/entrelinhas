@@ -1,11 +1,26 @@
 # Entrelinhas
 
-Versão em português brasileiro do [Betweenle](https://betweenle.com/): adivinhe a palavra secreta de 5 letras que está alfabeticamente *entre* dois limites. A cada tentativa, o intervalo se estreita.
+Versão em português brasileiro do [Betweenle](https://betweenle.com/), com dois modos de jogo: o clássico (uma palavra) e palavras cruzadas (várias palavras interligadas).
 
-- **Palavra do dia**: a mesma palavra para todo mundo, baseada na data.
-- **Modo aleatório**: jogue quantas vezes quiser.
-- **10 tentativas**.
-- Acentos são ignorados; use apenas `a`–`z`.
+## Modos
+
+Ao abrir o jogo, um menu deixa escolher entre:
+
+- **Clássico** — adivinhe a palavra secreta de 5 letras que está alfabeticamente *entre* dois limites. A cada tentativa, o intervalo se estreita. 15 tentativas.
+  - *Palavra do dia*: a mesma palavra para todo mundo, baseada na data.
+  - *Aleatório*: jogue quantas vezes quiser.
+- **Palavras Cruzadas** — várias palavras secretas (5 por padrão) montadas como num crossword, todas interligadas. À esquerda fica o tabuleiro; à direita, uma lista alfabética dos palpites, mostrando quantas secretas ainda restam acima/abaixo de cada um e a distância em palavras do dicionário até a secreta mais próxima em cada direção. Acertar uma secreta a revela no tabuleiro e a remove da lista. Palpites em faixas já descartadas (fora dos limites ou em gaps com zero secretas) são bloqueados. 50 tentativas.
+  - *Cruzadas do dia* e *Aleatório*, mesma lógica do clássico.
+
+Acentos são ignorados em qualquer modo; use apenas `a`–`z`.
+
+### Gerador de cruzadas
+
+As cruzadas são geradas em tempo real a partir de `ANSWERS`, com seed determinística por data no modo diário. O algoritmo é greedy + backtracking: coloca a primeira palavra, depois tenta encaixar cada palavra seguinte cruzando alguma já posicionada num letra compatível, rejeitando posições que criariam adjacências indesejadas. A partir da 4ª palavra o gerador *prefere* posições que formem laços (a palavra cruza duas já posicionadas), caindo de volta para cruzamentos simples quando não há opção de laço. Constantes em `crossword.js`: `NUM_SECRETS`, `MAX_GUESSES`, `GEN_MAX_ATTEMPTS`.
+
+### Compartilhar
+
+O botão "Compartilhar" copia ou envia (via Web Share API) o resultado em texto. No modo cruzadas, o texto inclui o estado atual do tabuleiro em bloco monoespaçado (cercado por <code>\`\`\`</code>), com letras maiúsculas para as secretas resolvidas e `·` para as ainda em aberto.
 
 ## Listas de palavras
 
@@ -26,7 +41,7 @@ python -m http.server 8000
 npx http-server -p 8000
 ```
 
-Depois abra <http://localhost:8000>.
+Depois abra <http://localhost:8000>. O menu é a tela inicial; cada modo é uma view separada, alternada via JS. Há suporte a `#classic` e `#crossword` no hash para deep-link.
 
 ## Publicando no GitHub Pages
 
@@ -61,9 +76,11 @@ Os arquivos crus `_raw_*.txt` / `_raw_*.json` não são necessários para rodar;
 ## Estrutura
 
 ```
-index.html        # marcação e diálogos (PT-BR)
-styles.css        # tema escuro/claro, layout responsivo
-game.js           # lógica do jogo (módulo ES)
+index.html        # marcação das três views (menu / clássico / cruzadas) e diálogos
+styles.css        # tema escuro/claro, layout responsivo, modo compacto para telas baixas
+app.js            # roteador entre views, inicializa cada modo
+game.js           # lógica do modo clássico (módulo ES)
+crossword.js      # gerador + lógica do modo cruzadas
 answers.js        # ANSWERS: lista de respostas
 valid.js          # VALID: Set de palavras aceitas
 ```
