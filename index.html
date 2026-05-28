@@ -24,7 +24,7 @@
           <h2>Clássico</h2>
           <p>Uma palavra secreta entre dois limites alfabéticos.</p>
           <div class="menu-buttons">
-            <button data-mode="classic-daily">Palavra do dia</button>
+            <button data-mode="classic-daily">Do dia</button>
             <button data-mode="classic-random" class="ghost">Aleatório</button>
             <button data-past-days="classic" class="ghost">Dias anteriores</button>
           </div>
@@ -34,7 +34,7 @@
           <h2>Palavras Cruzadas</h2>
           <p>Várias palavras secretas interligadas. Acerte todas para completar o tabuleiro.</p>
           <div class="menu-buttons">
-            <button data-mode="crossword-daily">Cruzadas do dia</button>
+            <button data-mode="crossword-daily">Do dia</button>
             <button data-mode="crossword-random" class="ghost">Aleatório</button>
             <button data-past-days="crossword" class="ghost">Dias anteriores</button>
           </div>
@@ -63,7 +63,12 @@
       </h1>
       <div class="actions">
         <button class="ghost" data-back title="Voltar ao menu">Menu</button>
-        <button id="hint-btn" class="ghost hint-btn" title="Dica" aria-label="Dica" disabled>💡</button>
+        <button id="hint-btn" class="ghost hint-btn" title="Dica" aria-label="Dica" aria-disabled="true">
+          <svg class="hint-ring" viewBox="0 0 36 36" aria-hidden="true">
+            <circle cx="18" cy="18" r="15" pathLength="100"></circle>
+          </svg>
+          <span class="hint-icon">💡</span>
+        </button>
         <button id="help-btn" class="ghost" title="Como jogar" aria-label="Como jogar">?</button>
       </div>
     </header>
@@ -105,8 +110,6 @@
         <label for="guess-input" id="guess-btn" role="button" tabindex="-1">Tentar</label>
         <button type="submit" hidden aria-hidden="true"></button>
       </form>
-
-      <p class="message" aria-hidden="true"></p>
     </footer>
 
     <dialog id="help-dialog">
@@ -121,6 +124,7 @@
       <p>Em baixo do tabuleiro, o teclado mostra quais letras ainda fazem sentido como próximo caractere. Letras que cairiam fora dos limites ficam apagadas, e palpites fora do intervalo são bloqueados.</p>
       <p>Você tem <strong>15 tentativas</strong>. Acentos são ignorados (use só <code>a</code>–<code>z</code>).</p>
       <p>Modo <strong>Palavra do dia</strong>: uma palavra por dia, igual para todo mundo. Modo <strong>Aleatório</strong>: jogue quantas vezes quiser.</p>
+      <p>O botão <strong>💡</strong> no topo libera dicas quando o intervalo aperta. O anel ao redor mostra o progresso: primeiro ele enche conforme você acerta palpites (cor escura), depois enche enquanto o tempo passa (cor clara). A primeira dica revela a <em>última letra</em>; a segunda revela a <em>penúltima</em>.</p>
       <form method="dialog"><button>Entendi</button></form>
     </dialog>
 
@@ -129,7 +133,7 @@
       <div id="end-body"></div>
       <div class="end-actions">
         <button id="share-btn">Compartilhar</button>
-        <button id="play-again-btn">Jogar de novo</button>
+        <button id="play-again-btn">Novo jogo aleatório</button>
         <button id="end-menu-btn" class="ghost">Menu</button>
         <form method="dialog"><button class="ghost">Fechar</button></form>
       </div>
@@ -144,7 +148,12 @@
       </h1>
       <div class="actions">
         <button class="ghost" data-back title="Voltar ao menu">Menu</button>
-        <button id="cw-hint-btn" class="ghost hint-btn" title="Dica" aria-label="Dica" disabled>💡</button>
+        <button id="cw-hint-btn" class="ghost hint-btn" title="Dica" aria-label="Dica" aria-disabled="true">
+          <svg class="hint-ring" viewBox="0 0 36 36" aria-hidden="true">
+            <circle cx="18" cy="18" r="15" pathLength="100"></circle>
+          </svg>
+          <span class="hint-icon">💡</span>
+        </button>
         <button id="cw-help-btn" class="ghost" title="Como jogar" aria-label="Como jogar">?</button>
       </div>
     </header>
@@ -192,8 +201,6 @@
         <label for="cw-guess-input" id="cw-guess-btn" role="button" tabindex="-1">Tentar</label>
         <button type="submit" hidden aria-hidden="true"></button>
       </form>
-
-      <p class="message" aria-hidden="true"></p>
     </footer>
 
     <dialog id="cw-help-dialog">
@@ -203,6 +210,7 @@
       <p>Grupos de <code>?????</code> indicam quantas secretas ainda existem entre dois palpites consecutivos. Quando você acerta uma secreta, ela aparece no tabuleiro e some da lista lateral.</p>
       <p>Palpites fora dos limites — ou em faixas já descartadas — são bloqueados.</p>
       <p>Você tem <strong>50 tentativas</strong> para acertar todas.</p>
+      <p>O botão <strong>💡</strong> no topo libera até <strong>3 dicas</strong> conforme você se aproxima das secretas. O anel ao redor mostra o progresso: primeiro enche conforme você reduz a distância (cor escura), depois enche enquanto o tempo passa (cor clara). Ao usar uma dica, você escolhe qualquer letra do tabuleiro para revelar.</p>
       <form method="dialog"><button>Entendi</button></form>
     </dialog>
 
@@ -211,7 +219,7 @@
       <div id="cw-end-body"></div>
       <div class="end-actions">
         <button id="cw-share-btn">Compartilhar</button>
-        <button id="cw-play-again-btn">Jogar de novo</button>
+        <button id="cw-play-again-btn">Novo jogo aleatório</button>
         <button id="cw-end-menu-btn" class="ghost">Menu</button>
         <form method="dialog"><button class="ghost">Fechar</button></form>
       </div>

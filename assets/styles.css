@@ -19,7 +19,7 @@
     --bg-2: #ffffff;
     --fg: #1c2030;
     --muted: #5b6275;
-    --accent: #2f5fe6;
+    --accent: #7093f3;
     --border: #d8dce6;
   }
 }
@@ -381,23 +381,33 @@ footer {
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: visible;
 }
-button.hint-btn:disabled { opacity: 1; cursor: default; }
-.hint-btn::before {
-  content: "";
+button.hint-btn[aria-disabled="true"] { opacity: 1; cursor: pointer; }
+.hint-icon {
+  position: relative;
+  z-index: 1;
+  line-height: 1;
+}
+.hint-ring {
   position: absolute;
-  inset: 2px;
-  border-radius: 50%;
-  background: conic-gradient(
-    var(--tip-ring-color, var(--muted)) calc(var(--tip-progress, 0) * 1turn),
-    transparent 0
-  );
-  -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 3px), black calc(100% - 3px));
-          mask: radial-gradient(closest-side, transparent calc(100% - 3px), black calc(100% - 3px));
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
   pointer-events: none;
-  transition: background 200ms linear;
+  overflow: visible;
 }
-.hint-btn.ready::before { display: none; }
+.hint-ring circle {
+  fill: none;
+  stroke: var(--tip-ring-color, var(--muted));
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: calc(100 - var(--tip-progress, 0) * 100);
+  transition: stroke-dashoffset 600ms linear, stroke 250ms linear;
+}
+.hint-btn.ready .hint-ring { display: none; }
 .hint-btn.ready {
   background: var(--warn);
   color: #2a1a05;
@@ -446,8 +456,9 @@ button.hint-btn:disabled { opacity: 1; cursor: default; }
   text-align: center;
 }
 .toast.show { opacity: 1; }
-.toast.error   { border-color: var(--bad); background: var(--bg-2); color: var(--bad); }
-.toast.success { border-color: var(--ok);  background: var(--bg-2); color: var(--ok); }
+.toast.error   { border-color: var(--bad);  background: var(--bg-2); color: var(--bad); }
+.toast.success { border-color: var(--ok);   background: var(--bg-2); color: var(--ok); }
+.toast.warn    { border-color: var(--warn); background: var(--bg-2); color: var(--warn); }
 
 /* ====================== Past days dialog ====================== */
 #past-days-dialog {
@@ -695,4 +706,6 @@ button.hint-btn:disabled { opacity: 1; cursor: default; }
   .cw-row { padding: 5px 10px; font-size: 0.88rem; letter-spacing: 0.1em; }
   .cw-row .tag, .cw-row .tags { font-size: 0.7rem; }
   #cw-guess-input { padding: 8px 10px; font-size: 1rem; letter-spacing: 0.1em; }
+
+  .input-area { padding-top: 6px; padding-bottom: 6px; gap: 6px; }
 }

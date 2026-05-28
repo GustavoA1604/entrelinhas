@@ -1,6 +1,7 @@
 import { ANSWERS } from "./data/answers.js";
 import { VALID } from "./data/valid.js";
 import { showToast } from "./toast.js";
+import { isMobileDevice, copyToClipboard } from "./share-helpers.js";
 
 const MAX_GUESSES = 15;
 const HINT_TIPS = [
@@ -275,20 +276,26 @@ export function initClassic({ onBack } = {}) {
   function updateHintButton() {
     hintBtn.style.setProperty("--tip-progress", "0");
     hintBtn.style.setProperty("--tip-ring-color", "var(--muted)");
-    if (state.done) { hintBtn.disabled = true; hintBtn.classList.remove("ready"); hintBtn.title = "Dica"; return; }
+    if (state.done) { hintBtn.setAttribute("aria-disabled", "true"); hintBtn.classList.remove("ready"); hintBtn.title = "Dica"; return; }
     const next = HINT_TIPS[state.tipsRevealed.length];
-    if (!next) { hintBtn.disabled = true; hintBtn.classList.remove("ready"); hintBtn.title = "Sem mais dicas"; return; }
+    if (!next) { hintBtn.setAttribute("aria-disabled", "true"); hintBtn.classList.remove("ready"); hintBtn.title = "Sem mais dicas"; return; }
     const range = distanceBetween(state.currentLower, state.currentUpper);
     const start = state.tipStartRange ?? range;
-    const denom = Math.max(1, start - next.rangeMax);
-    const rangeProgress = range <= next.rangeMax
-      ? 1
-      : Math.max(0, Math.min(1, (start - range) / denom));
     const rangeOk = range <= next.rangeMax;
+    // Log-scale progress: linear plateaus at 95%+ when start >> rangeMax.
+    let rangeProgress;
+    if (rangeOk || start <= next.rangeMax) {
+      rangeProgress = 1;
+    } else {
+      const denom = Math.log(start / next.rangeMax);
+      rangeProgress = denom > 0
+        ? Math.max(0, Math.min(1, Math.log(start / range) / denom))
+        : 1;
+    }
     const idle = Date.now() - state.lastGuessAt;
     const idleProgress = Math.max(0, Math.min(1, idle / next.idleMs));
     const ready = rangeOk && idleProgress >= 1;
-    hintBtn.disabled = !ready;
+    hintBtn.setAttribute("aria-disabled", String(!ready));
     hintBtn.classList.toggle("ready", ready);
     if (!ready) {
       if (!rangeOk) {
@@ -408,17 +415,22 @@ export function initClassic({ onBack } = {}) {
   function buildShareText() {
     const header = state.mode === "daily" ? `Entrelinhas ${formatDate(state.dateKey)}` : "Entrelinhas (aleatório)";
     const score = state.won ? `${state.guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
-    return `${header} ${score}\n${buildSummaryLines({ includeWords: false }).join("\n")}`;
+    const footer = "Jogue também em https://gustavoa1604.github.io/entrelinhas/"
+    return `${header} ${score}\n${buildSummaryLines({ includeWords: false }).join("\n")}\n\n${footer}`;
   }
 
   async function share() {
     const text = buildShareText();
-    if (navigator.share) { try { await navigator.share({ text }); return; } catch {} }
-    try {
-      await navigator.clipboard.writeText(text);
+    if (isMobileDevice() && navigator.share) {
+      try { await navigator.share({ text }); return; }
+      catch (err) {
+        if (err && err.name === "AbortError") return; // user cancelled
+      }
+    }
+    if (await copyToClipboard(text)) {
       setMessage("Resultado copiado!", "success");
-    } catch {
-      setMessage("Não consegui copiar. Selecione e copie manualmente.", "error");
+    } else {
+      setMessage("Não foi possível copiar o resultado", "error");
     }
   }
 
@@ -433,17 +445,26 @@ export function initClassic({ onBack } = {}) {
   hintBtn.addEventListener("click", () => {
     if (state.done) return;
     const next = HINT_TIPS[state.tipsRevealed.length];
-    if (!next) return;
+    if (!next) { showToast("Sem mais dicas disponíveis", "warn"); return; }
     const range = distanceBetween(state.currentLower, state.currentUpper);
     const idle = Date.now() - state.lastGuessAt;
-    if (range > next.rangeMax || idle < next.idleMs) return;
+    if (range > next.rangeMax) {
+      const need = range - next.rangeMax;
+      showToast(`Reduza o intervalo em mais ${need} palavra${need === 1 ? "" : "s"} para liberar a dica`, "warn");
+      return;
+    }
+    if (idle < next.idleMs) {
+      const remainSec = Math.max(1, Math.ceil((next.idleMs - idle) / 1000));
+      showToast(`Aguarde ${remainSec}s para liberar a dica`, "warn");
+      return;
+    }
     state.tipsRevealed.push({ id: next.id, afterGuess: state.guesses.length });
     state.tipStartRange = distanceBetween(state.currentLower, state.currentUpper);
     renderHints();
     updateHintButton();
     saveDaily();
   });
-  setInterval(updateHintButton, 250);
+  setInterval(updateHintButton, 500);
   helpBtn.addEventListener("click", () => { if (typeof helpDialog.showModal === "function") helpDialog.showModal(); });
   shareBtn.addEventListener("click", share);
   playAgainBtn.addEventListener("click", () => { endDialog.close(); startGame("random"); });

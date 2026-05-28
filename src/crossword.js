@@ -1,6 +1,7 @@
 import { ANSWERS } from "./data/answers.js";
 import { VALID } from "./data/valid.js";
 import { showToast } from "./toast.js";
+import { isMobileDevice, copyToClipboard } from "./share-helpers.js";
 
 // === Tunables ===
 const NUM_SECRETS = 5;
@@ -508,25 +509,32 @@ export function initCrossword({ onBack } = {}) {
   function updateHintButton() {
     hintBtn.style.setProperty("--tip-progress", "0");
     hintBtn.style.setProperty("--tip-ring-color", "var(--muted)");
-    if (state.done) { hintBtn.disabled = true; hintBtn.classList.remove("ready"); hintBtn.title = "Dica"; return; }
+    if (state.done) { hintBtn.setAttribute("aria-disabled", "true"); hintBtn.classList.remove("ready"); hintBtn.title = "Dica"; return; }
     if (state.selectingTip) {
-      hintBtn.disabled = false; hintBtn.classList.remove("ready");
+      hintBtn.setAttribute("aria-disabled", "false"); hintBtn.classList.remove("ready");
       hintBtn.title = "Toque em uma letra para revelar (Esc para cancelar)";
       return;
     }
     const next = HINT_TIPS[state.tipsRevealed.length];
-    if (!next) { hintBtn.disabled = true; hintBtn.classList.remove("ready"); hintBtn.title = "Sem mais dicas"; return; }
+    if (!next) { hintBtn.setAttribute("aria-disabled", "true"); hintBtn.classList.remove("ready"); hintBtn.title = "Sem mais dicas"; return; }
     const range = totalDistance();
     const start = state.tipStartRange ?? range;
-    const denom = Math.max(1, start - next.rangeMax);
-    const rangeProgress = range <= next.rangeMax
-      ? 1
-      : Math.max(0, Math.min(1, (start - range) / denom));
     const rangeOk = range <= next.rangeMax;
+    // Log-scale progress: linear plateaus at 95%+ when start >> rangeMax
+    // (e.g., 20000 → 500). Log keeps the fill smooth across orders of magnitude.
+    let rangeProgress;
+    if (rangeOk || start <= next.rangeMax) {
+      rangeProgress = 1;
+    } else {
+      const denom = Math.log(start / next.rangeMax);
+      rangeProgress = denom > 0
+        ? Math.max(0, Math.min(1, Math.log(start / range) / denom))
+        : 1;
+    }
     const idle = Date.now() - state.lastGuessAt;
     const idleProgress = Math.max(0, Math.min(1, idle / next.idleMs));
     const ready = rangeOk && idleProgress >= 1;
-    hintBtn.disabled = !ready;
+    hintBtn.setAttribute("aria-disabled", String(!ready));
     hintBtn.classList.toggle("ready", ready);
     if (!ready) {
       if (!rangeOk) {
@@ -699,65 +707,59 @@ export function initCrossword({ onBack } = {}) {
     if (state.tipsRevealed.length > 0) {
       const tipsP = document.createElement("p");
       tipsP.style.margin = "0 0 10px";
-      const letters = state.tipsRevealed.map((t) => (letterAt(t.pos[0], t.pos[1]) || "?").toUpperCase()).join(", ");
-      tipsP.textContent = `💡 ${state.tipsRevealed.length} dica${state.tipsRevealed.length === 1 ? "" : "s"} usada${state.tipsRevealed.length === 1 ? "" : "s"}: ${letters}.`;
+      tipsP.textContent = `💡 ${state.tipsRevealed.length} dica${state.tipsRevealed.length === 1 ? "" : "s"} usada${state.tipsRevealed.length === 1 ? "" : "s"}.`;
       endBody.appendChild(tipsP);
     }
     if (typeof endDialog.showModal === "function") endDialog.showModal();
   }
 
-  function buildGridText() {
-    if (state.placed.length === 0) return "";
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const p of state.placed) {
-      for (let i = 0; i < p.word.length; i++) {
-        const cx = p.dir === "H" ? p.x + i : p.x;
-        const cy = p.dir === "H" ? p.y : p.y + i;
-        if (cx < minX) minX = cx;
-        if (cx > maxX) maxX = cx;
-        if (cy < minY) minY = cy;
-        if (cy > maxY) maxY = cy;
+  function buildEventLines() {
+    const lines = [];
+    const emitTipsAfter = (k) => {
+      for (const t of state.tipsRevealed) {
+        if (t.afterGuess === k) lines.push("💡 Dica usada");
       }
-    }
-    const W = maxX - minX + 1, H = maxY - minY + 1;
-    const cells = Array.from({ length: H }, () => Array.from({ length: W }, () => null));
-    for (const p of state.placed) {
-      const isSolved = state.solvedSet.has(p.word);
-      for (let i = 0; i < p.word.length; i++) {
-        const cx = (p.dir === "H" ? p.x + i : p.x) - minX;
-        const cy = (p.dir === "H" ? p.y : p.y + i) - minY;
-        const cur = cells[cy][cx] || { letter: p.word[i], solved: false };
-        cur.letter = p.word[i];
-        cur.solved = cur.solved || isSolved;
-        cells[cy][cx] = cur;
+    };
+    emitTipsAfter(0);
+    let solvedRank = 0;
+    for (let i = 0; i < state.guesses.length; i++) {
+      const g = state.guesses[i];
+      if (g.isSecret) {
+        solvedRank++;
+        const n = i + 1;
+        lines.push(`🟩 ${solvedRank}ª palavra em ${n} tentativa${n === 1 ? "" : "s"}`);
       }
+      emitTipsAfter(i + 1);
     }
-    const rows = [];
-    for (let y = 0; y < H; y++) {
-      let line = "";
-      for (let x = 0; x < W; x++) {
-        const c = cells[y][x];
-        if (!c) line += "  ";
-        else if (c.solved) line += c.letter.toUpperCase() + " ";
-        else line += "· ";
-      }
-      rows.push(line.trimEnd());
+    const missing = state.secrets.length - state.solvedSet.size;
+    if (missing > 0) {
+      lines.push(`❌ Faltaram ${missing} palavra${missing === 1 ? "" : "s"}`);
     }
-    return rows.join("\n");
+    return lines;
   }
 
   function buildShareText() {
     const header = state.mode === "daily" ? `Entrelinhas Cruzadas ${formatDate(state.dateKey)}` : "Entrelinhas Cruzadas (aleatório)";
     const score = `${state.solvedSet.size}/${state.secrets.length} em ${state.guesses.length}/${MAX_GUESSES}`;
-    const tipsLine = state.tipsRevealed.length > 0 ? `\n💡 ${state.tipsRevealed.length} dica${state.tipsRevealed.length === 1 ? "" : "s"}` : "";
-    const gridText = buildGridText();
-    return `${header}\n${score}${tipsLine}\n\n\`\`\`\n${gridText}\n\`\`\``;
+    const events = buildEventLines().join("\n");
+    const footer = "Jogue também em https://gustavoa1604.github.io/entrelinhas/"
+    return `${header}\n${score}\n\n${events}\n\n${footer}`;
   }
   async function share() {
     const text = buildShareText();
-    if (navigator.share) { try { await navigator.share({ text }); return; } catch {} }
-    try { await navigator.clipboard.writeText(text); setMessage("Resultado copiado!", "success"); }
-    catch { setMessage("Não consegui copiar.", "error"); }
+    console.log("Shared text")
+    if (isMobileDevice() && navigator.share) {
+      console.log("Trying to share")
+      try { await navigator.share({ text }); return; }
+      catch (err) {
+        if (err && err.name === "AbortError") return;
+      }
+    }
+    if (await copyToClipboard(text)) {
+      setMessage("Resultado copiado!", "success");
+    } else {
+      setMessage("Não foi possível copiar o resultado.", "error");
+    }
   }
 
   // --- Wiring ---
@@ -771,7 +773,20 @@ export function initCrossword({ onBack } = {}) {
   hintBtn.addEventListener("click", () => {
     if (state.done) return;
     if (state.selectingTip) { stopSelecting(); return; }
-    if (!isHintReady()) return;
+    if (!isHintReady()) {
+      const next = HINT_TIPS[state.tipsRevealed.length];
+      if (!next) { showToast("Sem mais dicas disponíveis", "warn"); return; }
+      const range = totalDistance();
+      const idle = Date.now() - state.lastGuessAt;
+      if (range > next.rangeMax) {
+        const need = range - next.rangeMax;
+        showToast("Chegue mais próximo da resposta para liberar a próxima dica", "warn");
+      } else {
+        const remainSec = Math.max(1, Math.ceil((next.idleMs - idle) / 1000));
+        showToast(`Aguarde ${remainSec}s para liberar a dica`, "warn");
+      }
+      return;
+    }
     startSelecting();
   });
   grid.addEventListener("click", (e) => {
@@ -786,7 +801,7 @@ export function initCrossword({ onBack } = {}) {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && state.selectingTip) stopSelecting();
   });
-  setInterval(updateHintButton, 250);
+  setInterval(updateHintButton, 500);
   helpBtn.addEventListener("click", () => { if (typeof helpDialog.showModal === "function") helpDialog.showModal(); });
   shareBtn.addEventListener("click", share);
   playAgainBtn.addEventListener("click", () => { endDialog.close(); startGame("random"); });
