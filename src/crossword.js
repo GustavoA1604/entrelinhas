@@ -1,5 +1,6 @@
 import { ANSWERS } from "./data/answers.js";
 import { VALID } from "./data/valid.js";
+import { showToast } from "./toast.js";
 
 // === Tunables ===
 const NUM_SECRETS = 5;
@@ -222,7 +223,6 @@ export function initCrossword({ onBack } = {}) {
   const input = $("cw-guess-input");
   const form = $("cw-guess-form");
   const guessBtn = $("cw-guess-btn");
-  const msg = $("cw-message");
   const alphaHint = $("cw-alpha-hint");
   const guessesLeftEl = $("cw-guesses-left");
   const solvedCountEl = $("cw-solved-count");
@@ -258,8 +258,8 @@ export function initCrossword({ onBack } = {}) {
   };
 
   function setMessage(text, kind = "") {
-    msg.textContent = text;
-    msg.className = "message" + (kind ? " " + kind : "");
+    if (text) showToast(text, kind);
+    else showToast("");
   }
 
   // --- List computation ---

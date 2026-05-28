@@ -1,5 +1,6 @@
 import { ANSWERS } from "./data/answers.js";
 import { VALID } from "./data/valid.js";
+import { showToast } from "./toast.js";
 
 const MAX_GUESSES = 15;
 const HINT_TIPS = [
@@ -95,7 +96,6 @@ export function initClassic({ onBack } = {}) {
   const alphaHint = $("alpha-hint");
   const input = $("guess-input");
   const form = $("guess-form");
-  const msg = $("message");
   const guessesLeft = $("guesses-left");
   const puzzleLabel = $("puzzle-label");
   const puzzleDate = $("puzzle-date");
@@ -204,8 +204,8 @@ export function initClassic({ onBack } = {}) {
   }
 
   function setMessage(text, kind = "") {
-    msg.textContent = text;
-    msg.className = "message" + (kind ? " " + kind : "");
+    if (text) showToast(text, kind);
+    else showToast("");
   }
 
   function startGame(mode, customDateKey) {

@@ -104,7 +104,6 @@
         <button type="submit" hidden aria-hidden="true"></button>
       </form>
 
-      <p id="message" class="message" role="status"></p>
     </main>
 
     <dialog id="help-dialog">
@@ -189,7 +188,6 @@
         <button type="submit" hidden aria-hidden="true"></button>
       </form>
 
-      <p id="cw-message" class="message" role="status"></p>
     </main>
 
     <dialog id="cw-help-dialog">
@@ -213,6 +211,8 @@
       </div>
     </dialog>
   </section>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script type="module" src="./src/app.js"></script>
 </body>
