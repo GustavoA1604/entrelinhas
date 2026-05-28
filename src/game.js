@@ -108,6 +108,7 @@ export function initClassic({ onBack } = {}) {
   const endBody = $("end-body");
   const shareBtn = $("share-btn");
   const playAgainBtn = $("play-again-btn");
+  const endMenuBtn = $("end-menu-btn");
 
   const state = {
     mode: "daily",
@@ -121,6 +122,7 @@ export function initClassic({ onBack } = {}) {
     isHistorical: false,
     tipsRevealed: [],
     lastGuessAt: Date.now(),
+    tipStartRange: null,
   };
 
   function recomputeBounds() {
@@ -216,6 +218,7 @@ export function initClassic({ onBack } = {}) {
     state.won = false;
     state.tipsRevealed = [];
     state.lastGuessAt = Date.now();
+    state.tipStartRange = distanceBetween(state.currentLower, state.currentUpper);
 
     if (mode === "daily") {
       const today = todayKey();
@@ -233,6 +236,9 @@ export function initClassic({ onBack } = {}) {
           ? saved.tipsRevealed.map((t) => typeof t === "string" ? { id: t, afterGuess: 0 } : t)
           : [];
         recomputeBounds();
+        state.tipStartRange = typeof saved.tipStartRange === "number"
+          ? saved.tipStartRange
+          : distanceBetween(state.currentLower, state.currentUpper);
       }
     } else {
       state.dateKey = null;
@@ -267,14 +273,37 @@ export function initClassic({ onBack } = {}) {
   }
 
   function updateHintButton() {
-    if (state.done) { hintBtn.disabled = true; hintBtn.classList.remove("ready"); return; }
+    hintBtn.style.setProperty("--tip-progress", "0");
+    hintBtn.style.setProperty("--tip-ring-color", "var(--muted)");
+    if (state.done) { hintBtn.disabled = true; hintBtn.classList.remove("ready"); hintBtn.title = "Dica"; return; }
     const next = HINT_TIPS[state.tipsRevealed.length];
-    if (!next) { hintBtn.disabled = true; hintBtn.classList.remove("ready"); return; }
+    if (!next) { hintBtn.disabled = true; hintBtn.classList.remove("ready"); hintBtn.title = "Sem mais dicas"; return; }
     const range = distanceBetween(state.currentLower, state.currentUpper);
+    const start = state.tipStartRange ?? range;
+    const denom = Math.max(1, start - next.rangeMax);
+    const rangeProgress = range <= next.rangeMax
+      ? 1
+      : Math.max(0, Math.min(1, (start - range) / denom));
+    const rangeOk = range <= next.rangeMax;
     const idle = Date.now() - state.lastGuessAt;
-    const ready = range <= next.rangeMax && idle >= next.idleMs;
+    const idleProgress = Math.max(0, Math.min(1, idle / next.idleMs));
+    const ready = rangeOk && idleProgress >= 1;
     hintBtn.disabled = !ready;
     hintBtn.classList.toggle("ready", ready);
+    if (!ready) {
+      if (!rangeOk) {
+        hintBtn.style.setProperty("--tip-progress", String(rangeProgress));
+        hintBtn.style.setProperty("--tip-ring-color", "color-mix(in srgb, var(--warn) 60%, #000)");
+      } else {
+        hintBtn.style.setProperty("--tip-progress", String(idleProgress));
+        hintBtn.style.setProperty("--tip-ring-color", "var(--warn)");
+      }
+    }
+    const remainSec = Math.max(0, Math.ceil((next.idleMs - idle) / 1000));
+    const reasons = [];
+    if (!rangeOk) reasons.push(`alcance ${range} (precisa ≤${next.rangeMax})`);
+    if (idleProgress < 1) reasons.push(`aguarde ${remainSec}s`);
+    hintBtn.title = ready ? "Dica disponível" : `Próxima dica: ${reasons.join(" · ")}`;
   }
 
   function loadDaily(dateKey) {
@@ -282,7 +311,7 @@ export function initClassic({ onBack } = {}) {
   }
   function saveDaily() {
     if (state.mode !== "daily") return;
-    const payload = { dateKey: state.dateKey, target: state.target, guesses: state.guesses, done: state.done, won: state.won, tipsRevealed: state.tipsRevealed };
+    const payload = { dateKey: state.dateKey, target: state.target, guesses: state.guesses, done: state.done, won: state.won, tipsRevealed: state.tipsRevealed, tipStartRange: state.tipStartRange };
     try { localStorage.setItem(STORAGE_PREFIX + state.dateKey, JSON.stringify(payload)); } catch {}
   }
 
@@ -409,14 +438,16 @@ export function initClassic({ onBack } = {}) {
     const idle = Date.now() - state.lastGuessAt;
     if (range > next.rangeMax || idle < next.idleMs) return;
     state.tipsRevealed.push({ id: next.id, afterGuess: state.guesses.length });
+    state.tipStartRange = distanceBetween(state.currentLower, state.currentUpper);
     renderHints();
     updateHintButton();
     saveDaily();
   });
-  setInterval(updateHintButton, 500);
+  setInterval(updateHintButton, 250);
   helpBtn.addEventListener("click", () => { if (typeof helpDialog.showModal === "function") helpDialog.showModal(); });
   shareBtn.addEventListener("click", share);
   playAgainBtn.addEventListener("click", () => { endDialog.close(); startGame("random"); });
+  endMenuBtn.addEventListener("click", () => { endDialog.close(); onBack && onBack(); });
 
   function maybeRolloverDaily() {
     if (state.mode === "daily" && !state.isHistorical && state.dateKey && state.dateKey !== todayKey()) startGame("daily");

@@ -128,6 +128,7 @@
       <div class="end-actions">
         <button id="share-btn">Compartilhar</button>
         <button id="play-again-btn">Jogar de novo</button>
+        <button id="end-menu-btn" class="ghost">Menu</button>
         <form method="dialog"><button class="ghost">Fechar</button></form>
       </div>
     </dialog>
@@ -141,6 +142,7 @@
       </h1>
       <div class="actions">
         <button class="ghost" data-back title="Voltar ao menu">Menu</button>
+        <button id="cw-hint-btn" class="ghost hint-btn" title="Dica" aria-label="Dica" disabled>💡</button>
         <button id="cw-help-btn" class="ghost" title="Como jogar" aria-label="Como jogar">?</button>
       </div>
     </header>
@@ -166,6 +168,8 @@
       </div>
 
       <div id="cw-alpha-hint" class="alpha" aria-label="Letras possíveis"></div>
+
+      <div id="cw-hints" class="hints" aria-live="polite"></div>
 
       <form id="cw-guess-form" autocomplete="off">
         <input
@@ -204,6 +208,7 @@
       <div class="end-actions">
         <button id="cw-share-btn">Compartilhar</button>
         <button id="cw-play-again-btn">Jogar de novo</button>
+        <button id="cw-end-menu-btn" class="ghost">Menu</button>
         <form method="dialog"><button class="ghost">Fechar</button></form>
       </div>
     </dialog>

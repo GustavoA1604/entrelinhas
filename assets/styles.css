@@ -334,7 +334,33 @@ footer {
 .menu-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 
 /* ====================== Hints ====================== */
-.hint-btn { font-size: 1.05rem; line-height: 1; padding: 8px 10px; }
+.hint-btn {
+  font-size: 1.05rem;
+  padding: 10px;
+  aspect-ratio: 1;
+  width: auto;
+  height: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+button.hint-btn:disabled { opacity: 1; cursor: default; }
+.hint-btn::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--tip-ring-color, var(--muted)) calc(var(--tip-progress, 0) * 1turn),
+    transparent 0
+  );
+  -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 3px), black calc(100% - 3px));
+          mask: radial-gradient(closest-side, transparent calc(100% - 3px), black calc(100% - 3px));
+  pointer-events: none;
+  transition: background 200ms linear;
+}
+.hint-btn.ready::before { display: none; }
 .hint-btn.ready {
   background: var(--warn);
   color: #2a1a05;
@@ -487,6 +513,15 @@ footer {
 .cw-cell.cw-solved {
   background: color-mix(in srgb, var(--ok) 28%, var(--bg-2));
   border-color: color-mix(in srgb, var(--ok) 55%, var(--border));
+}
+.cw-cell.cw-revealed {
+  background: color-mix(in srgb, var(--warn) 28%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--warn) 55%, var(--border));
+}
+.crossword-grid.cw-selecting .cw-cell:not(.cw-empty):not(.cw-solved):not(.cw-revealed) {
+  cursor: pointer;
+  outline: 2px dashed var(--warn);
+  outline-offset: -2px;
 }
 
 /* ====================== Crossword side list ====================== */
