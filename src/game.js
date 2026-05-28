@@ -381,10 +381,12 @@ export function initClassic({ onBack } = {}) {
       else if (g.side === "upper" && g.word < hi) hi = g.word;
       const lowerDist = distanceBetween(lo, state.target);
       const upperDist = distanceBetween(state.target, hi);
-      const arrow = g.side === "hit" ? "🟩" : g.side === "lower" ? "🔼" : "🔽";
+      const arrow = g.side === "hit" ? "✅" : g.side === "lower" ? "🔼" : "🔽";
       const word = includeWords ? ` ${g.word}` : "";
       if (g.side === "hit") {
         lines.push(`${arrow}${word}  Sucesso em ${n} tentativa${n === 1 ? "" : "s"}`);
+      } else if (includeWords) {
+        lines.push(`${arrow} ${lo} (${fmt(lowerDist)}) — (${fmt(upperDist)}) ${hi}`);
       } else {
         lines.push(`${arrow}${word}  ${fmt(lowerDist)} - ${fmt(upperDist)}`);
       }

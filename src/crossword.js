@@ -698,18 +698,14 @@ export function initCrossword({ onBack } = {}) {
     endTitle.textContent = state.won ? "Você completou! 🎉" : "Fim de jogo";
     endBody.innerHTML = "";
     const info = document.createElement("p");
-    const remaining = state.secretsSorted.filter((s) => !state.solvedSet.has(s));
-    info.textContent = state.won
-      ? `${state.guesses.length} tentativa${state.guesses.length === 1 ? "" : "s"} usadas. Palavras: ${state.secretsSorted.join(", ")}.`
-      : `Faltaram: ${remaining.join(", ") || "—"}. Palavras: ${state.secretsSorted.join(", ")}.`;
+    const score = `${state.solvedSet.size}/${state.secrets.length} em ${state.guesses.length}/${MAX_GUESSES}`;
+    info.textContent = `${score} · Palavras: ${state.secretsSorted.join(", ")}.`;
     info.style.margin = "0 0 10px";
     endBody.appendChild(info);
-    if (state.tipsRevealed.length > 0) {
-      const tipsP = document.createElement("p");
-      tipsP.style.margin = "0 0 10px";
-      tipsP.textContent = `💡 ${state.tipsRevealed.length} dica${state.tipsRevealed.length === 1 ? "" : "s"} usada${state.tipsRevealed.length === 1 ? "" : "s"}.`;
-      endBody.appendChild(tipsP);
-    }
+    const pre = document.createElement("pre");
+    pre.className = "summary";
+    pre.textContent = buildEventLines().join("\n");
+    endBody.appendChild(pre);
     if (typeof endDialog.showModal === "function") endDialog.showModal();
   }
 
@@ -727,7 +723,7 @@ export function initCrossword({ onBack } = {}) {
       if (g.isSecret) {
         solvedRank++;
         const n = i + 1;
-        lines.push(`🟩 ${solvedRank}ª palavra em ${n} tentativa${n === 1 ? "" : "s"}`);
+        lines.push(`✅ ${solvedRank}ª palavra em ${n} tentativa${n === 1 ? "" : "s"}`);
       }
       emitTipsAfter(i + 1);
     }
