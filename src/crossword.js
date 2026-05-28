@@ -4,7 +4,18 @@ import { VALID } from "./data/valid.js";
 // === Tunables ===
 const NUM_SECRETS = 5;
 const MAX_GUESSES = 50;
-const STORAGE_KEY = "entrelinhas:crossword-daily";
+const STORAGE_PREFIX = "entrelinhas:crossword-daily:";
+export const CROSSWORD_STORAGE_PREFIX = STORAGE_PREFIX;
+
+try {
+  const legacy = JSON.parse(localStorage.getItem("entrelinhas:crossword-daily") || "null");
+  if (legacy && typeof legacy === "object" && legacy.dateKey) {
+    if (!localStorage.getItem(STORAGE_PREFIX + legacy.dateKey)) {
+      localStorage.setItem(STORAGE_PREFIX + legacy.dateKey, JSON.stringify(legacy));
+    }
+    localStorage.removeItem("entrelinhas:crossword-daily");
+  }
+} catch {}
 const SENTINEL_LOW = "aaaaa";
 const SENTINEL_HIGH = "zzzzz";
 const GEN_MAX_ATTEMPTS = 300;
@@ -39,8 +50,11 @@ function pluralSecretas(n) {
   return n === 1 ? "1 secreta" : `${n.toLocaleString("pt-BR")} secretas`;
 }
 function todayKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  // Anchor the daily puzzle to Brasília time (UTC-3, no DST) so every device
+  // generates the same date key for the same UTC instant.
+  const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
+  const d = new Date(Date.now() - BRT_OFFSET_MS);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 function formatDate(key) {
   const [y, m, d] = key.split("-");
@@ -210,7 +224,6 @@ export function initCrossword({ onBack } = {}) {
   const totalCountEl = $("cw-total-count");
   const puzzleLabel = $("cw-puzzle-label");
   const puzzleDate = $("cw-puzzle-date");
-  const modeToggle = $("cw-mode-toggle");
   const helpBtn = $("cw-help-btn");
   const helpDialog = $("cw-help-dialog");
   const endDialog = $("cw-end-dialog");
@@ -222,6 +235,7 @@ export function initCrossword({ onBack } = {}) {
   const state = {
     mode: "daily",
     dateKey: null,
+    isHistorical: false,
     placed: [],
     secrets: [],            // lowercase, in placement order
     secretsSorted: [],      // sorted alphabetic copy
@@ -472,8 +486,8 @@ export function initCrossword({ onBack } = {}) {
     }
   }
 
-  function loadDaily() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; }
+  function loadDaily(dateKey) {
+    try { return JSON.parse(localStorage.getItem(STORAGE_PREFIX + dateKey) || "null"); } catch { return null; }
   }
   function saveDaily() {
     if (state.mode !== "daily") return;
@@ -486,10 +500,10 @@ export function initCrossword({ onBack } = {}) {
       done: state.done,
       won: state.won,
     };
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch {}
+    try { localStorage.setItem(STORAGE_PREFIX + state.dateKey, JSON.stringify(payload)); } catch {}
   }
 
-  function startGame(mode) {
+  function startGame(mode, customDateKey) {
     if (endDialog.open) endDialog.close();
     state.mode = mode;
     state.guesses = [];
@@ -499,8 +513,10 @@ export function initCrossword({ onBack } = {}) {
 
     let restored = false;
     if (mode === "daily") {
-      state.dateKey = todayKey();
-      const saved = loadDaily();
+      const today = todayKey();
+      state.dateKey = customDateKey || today;
+      state.isHistorical = state.dateKey !== today;
+      const saved = loadDaily(state.dateKey);
       if (saved && saved.dateKey === state.dateKey && Array.isArray(saved.secrets) && saved.secrets.length === NUM_SECRETS) {
         state.placed = saved.placed;
         state.secrets = saved.secrets;
@@ -513,12 +529,11 @@ export function initCrossword({ onBack } = {}) {
       }
       puzzleLabel.textContent = "Cruzadas do dia";
       puzzleDate.textContent = formatDate(state.dateKey);
-      modeToggle.textContent = "Aleatório";
     } else {
       state.dateKey = null;
+      state.isHistorical = false;
       puzzleLabel.textContent = "Modo aleatório";
       puzzleDate.textContent = "";
-      modeToggle.textContent = "Cruzadas do dia";
     }
 
     if (!restored) {
@@ -610,13 +625,13 @@ export function initCrossword({ onBack } = {}) {
     if (cleaned !== input.value) input.value = cleaned;
     renderAlphabet();
   });
-  modeToggle.addEventListener("click", () => { startGame(state.mode === "daily" ? "random" : "daily"); });
   helpBtn.addEventListener("click", () => { if (typeof helpDialog.showModal === "function") helpDialog.showModal(); });
   shareBtn.addEventListener("click", share);
   playAgainBtn.addEventListener("click", () => { endDialog.close(); startGame("random"); });
 
   return {
-    start(mode) { startGame(mode); input.focus({ preventScroll: true }); },
+    start(mode, dateKey) { startGame(mode, dateKey); input.focus({ preventScroll: true }); },
     focus() { input.focus({ preventScroll: true }); },
+    shouldConfirmExit() { return state.mode === "random" && !state.done && state.guesses.length > 0; },
   };
 }

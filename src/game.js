@@ -2,7 +2,24 @@ import { ANSWERS } from "./data/answers.js";
 import { VALID } from "./data/valid.js";
 
 const MAX_GUESSES = 15;
-const STORAGE_KEY = "entrelinhas:daily";
+const HINT_TIPS = [
+  { id: "last",       rangeMax: 100, idleMs: 10_000 },
+  { id: "secondLast", rangeMax: 15,  idleMs: 30_000 },
+];
+const STORAGE_PREFIX = "entrelinhas:daily:";
+export const CLASSIC_STORAGE_PREFIX = STORAGE_PREFIX;
+export const DAILY_EPOCH = "2026-05-25";
+
+// One-time migration of the legacy single-slot key into a per-date entry.
+try {
+  const legacy = JSON.parse(localStorage.getItem("entrelinhas:daily") || "null");
+  if (legacy && typeof legacy === "object" && legacy.dateKey) {
+    if (!localStorage.getItem(STORAGE_PREFIX + legacy.dateKey)) {
+      localStorage.setItem(STORAGE_PREFIX + legacy.dateKey, JSON.stringify(legacy));
+    }
+    localStorage.removeItem("entrelinhas:daily");
+  }
+} catch {}
 const SENTINEL_LOW = "aaaaa";
 const SENTINEL_HIGH = "zzzzz";
 
@@ -42,8 +59,11 @@ function pluralWords(n) {
 }
 
 function todayKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  // Anchor the daily puzzle to Brasília time (UTC-3, no DST) so every device
+  // generates the same date key for the same UTC instant.
+  const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
+  const d = new Date(Date.now() - BRT_OFFSET_MS);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 function formatDate(key) {
   const [y, m, d] = key.split("-");
@@ -79,7 +99,8 @@ export function initClassic({ onBack } = {}) {
   const guessesLeft = $("guesses-left");
   const puzzleLabel = $("puzzle-label");
   const puzzleDate = $("puzzle-date");
-  const modeToggle = $("mode-toggle");
+  const hintBtn = $("hint-btn");
+  const hintsEl = $("hints");
   const helpBtn = $("help-btn");
   const helpDialog = $("help-dialog");
   const endDialog = $("end-dialog");
@@ -97,6 +118,9 @@ export function initClassic({ onBack } = {}) {
     done: false,
     won: false,
     dateKey: null,
+    isHistorical: false,
+    tipsRevealed: [],
+    lastGuessAt: Date.now(),
   };
 
   function recomputeBounds() {
@@ -182,7 +206,7 @@ export function initClassic({ onBack } = {}) {
     msg.className = "message" + (kind ? " " + kind : "");
   }
 
-  function startGame(mode) {
+  function startGame(mode, customDateKey) {
     if (endDialog.open) endDialog.close();
     state.mode = mode;
     state.guesses = [];
@@ -190,42 +214,76 @@ export function initClassic({ onBack } = {}) {
     state.currentUpper = SENTINEL_HIGH;
     state.done = false;
     state.won = false;
+    state.tipsRevealed = [];
+    state.lastGuessAt = Date.now();
 
     if (mode === "daily") {
-      state.dateKey = todayKey();
+      const today = todayKey();
+      state.dateKey = customDateKey || today;
+      state.isHistorical = state.dateKey !== today;
       state.target = pickTarget(state.dateKey);
       puzzleLabel.textContent = "Palavra do dia";
       puzzleDate.textContent = formatDate(state.dateKey);
-      modeToggle.textContent = "Aleatório";
-      const saved = loadDaily();
+      const saved = loadDaily(state.dateKey);
       if (saved && saved.dateKey === state.dateKey && saved.target === state.target) {
         state.guesses = saved.guesses || [];
         state.done = !!saved.done;
         state.won = !!saved.won;
+        state.tipsRevealed = Array.isArray(saved.tipsRevealed)
+          ? saved.tipsRevealed.map((t) => typeof t === "string" ? { id: t, afterGuess: 0 } : t)
+          : [];
         recomputeBounds();
       }
     } else {
       state.dateKey = null;
+      state.isHistorical = false;
       state.target = pickTarget(null);
       puzzleLabel.textContent = "Modo aleatório";
       puzzleDate.textContent = "";
-      modeToggle.textContent = "Palavra do dia";
     }
 
     setMessage("");
     input.value = "";
     input.disabled = state.done;
+    renderHints();
+    updateHintButton();
     render();
     if (state.done) showEndDialog();
   }
 
-  function loadDaily() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; }
+  function tipText(id) {
+    if (id === "last")       return `Dica: a palavra termina com "${state.target[4]}".`;
+    if (id === "secondLast") return `Dica: a penúltima letra é "${state.target[3]}".`;
+    return "Dica.";
+  }
+  function renderHints() {
+    hintsEl.innerHTML = "";
+    for (const t of state.tipsRevealed) {
+      const div = document.createElement("div");
+      div.className = "hint-banner";
+      div.textContent = tipText(t.id);
+      hintsEl.appendChild(div);
+    }
+  }
+
+  function updateHintButton() {
+    if (state.done) { hintBtn.disabled = true; hintBtn.classList.remove("ready"); return; }
+    const next = HINT_TIPS[state.tipsRevealed.length];
+    if (!next) { hintBtn.disabled = true; hintBtn.classList.remove("ready"); return; }
+    const range = distanceBetween(state.currentLower, state.currentUpper);
+    const idle = Date.now() - state.lastGuessAt;
+    const ready = range <= next.rangeMax && idle >= next.idleMs;
+    hintBtn.disabled = !ready;
+    hintBtn.classList.toggle("ready", ready);
+  }
+
+  function loadDaily(dateKey) {
+    try { return JSON.parse(localStorage.getItem(STORAGE_PREFIX + dateKey) || "null"); } catch { return null; }
   }
   function saveDaily() {
     if (state.mode !== "daily") return;
-    const payload = { dateKey: state.dateKey, target: state.target, guesses: state.guesses, done: state.done, won: state.won };
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch {}
+    const payload = { dateKey: state.dateKey, target: state.target, guesses: state.guesses, done: state.done, won: state.won, tipsRevealed: state.tipsRevealed };
+    try { localStorage.setItem(STORAGE_PREFIX + state.dateKey, JSON.stringify(payload)); } catch {}
   }
 
   function submitGuess(raw) {
@@ -245,6 +303,7 @@ export function initClassic({ onBack } = {}) {
     else if (word > state.target) side = "upper";
     else side = "lower";
     state.guesses.push({ word, side });
+    state.lastGuessAt = Date.now();
     recomputeBounds();
 
     if (!state.won && state.guesses.length >= MAX_GUESSES) { state.done = true; state.won = false; }
@@ -253,6 +312,7 @@ export function initClassic({ onBack } = {}) {
     setMessage("");
     saveDaily();
     render(word);
+    updateHintButton();
 
     if (state.done) {
       input.disabled = true;
@@ -267,7 +327,20 @@ export function initClassic({ onBack } = {}) {
     const lines = [];
     let lo = SENTINEL_LOW, hi = SENTINEL_HIGH;
     const fmt = (x) => x.toLocaleString("pt-BR");
-    for (const g of state.guesses) {
+    const tipLine = (id) => {
+      if (!includeWords) return "💡 Dica usada";
+      if (id === "last")       return `💡 Dica: última letra "${state.target[4]}"`;
+      if (id === "secondLast") return `💡 Dica: penúltima letra "${state.target[3]}"`;
+      return "💡 Dica";
+    };
+    const emitTipsAfter = (k) => {
+      for (const t of state.tipsRevealed) {
+        if (t.afterGuess === k) lines.push(tipLine(t.id));
+      }
+    };
+    emitTipsAfter(0);
+    for (let i = 0; i < state.guesses.length; i++) {
+      const g = state.guesses[i];
       if (g.side === "lower" && g.word > lo) lo = g.word;
       else if (g.side === "upper" && g.word < hi) hi = g.word;
       const lowerDist = distanceBetween(lo, state.target);
@@ -279,6 +352,7 @@ export function initClassic({ onBack } = {}) {
       } else {
         lines.push(`${arrow}${word}  ${fmt(lowerDist)} - ${fmt(upperDist)}`);
       }
+      emitTipsAfter(i + 1);
     }
     if (!state.won) lines.push(`❌ Não consegui em ${MAX_GUESSES} tentativas`);
     return lines;
@@ -327,22 +401,35 @@ export function initClassic({ onBack } = {}) {
     if (cleaned !== input.value) input.value = cleaned;
     renderAlphabet();
   });
-  modeToggle.addEventListener("click", () => { startGame(state.mode === "daily" ? "random" : "daily"); });
+  hintBtn.addEventListener("click", () => {
+    if (state.done) return;
+    const next = HINT_TIPS[state.tipsRevealed.length];
+    if (!next) return;
+    const range = distanceBetween(state.currentLower, state.currentUpper);
+    const idle = Date.now() - state.lastGuessAt;
+    if (range > next.rangeMax || idle < next.idleMs) return;
+    state.tipsRevealed.push({ id: next.id, afterGuess: state.guesses.length });
+    renderHints();
+    updateHintButton();
+    saveDaily();
+  });
+  setInterval(updateHintButton, 500);
   helpBtn.addEventListener("click", () => { if (typeof helpDialog.showModal === "function") helpDialog.showModal(); });
   shareBtn.addEventListener("click", share);
   playAgainBtn.addEventListener("click", () => { endDialog.close(); startGame("random"); });
 
   function maybeRolloverDaily() {
-    if (state.mode === "daily" && state.dateKey && state.dateKey !== todayKey()) startGame("daily");
+    if (state.mode === "daily" && !state.isHistorical && state.dateKey && state.dateKey !== todayKey()) startGame("daily");
   }
   document.addEventListener("visibilitychange", () => { if (!document.hidden) maybeRolloverDaily(); });
   window.addEventListener("focus", maybeRolloverDaily);
 
   return {
-    start(mode) {
-      startGame(mode);
+    start(mode, dateKey) {
+      startGame(mode, dateKey);
       input.focus({ preventScroll: true });
     },
     focus() { input.focus({ preventScroll: true }); },
+    shouldConfirmExit() { return state.mode === "random" && !state.done && state.guesses.length > 0; },
   };
 }

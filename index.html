@@ -19,8 +19,6 @@
     </header>
 
     <main class="menu-main">
-      <p class="menu-intro">Escolha um modo de jogo:</p>
-
       <div class="menu-grid">
         <div class="menu-card">
           <h2>Clássico</h2>
@@ -28,6 +26,7 @@
           <div class="menu-buttons">
             <button data-mode="classic-daily">Palavra do dia</button>
             <button data-mode="classic-random" class="ghost">Aleatório</button>
+            <button data-past-days="classic" class="ghost">Dias anteriores</button>
           </div>
         </div>
 
@@ -37,21 +36,34 @@
           <div class="menu-buttons">
             <button data-mode="crossword-daily">Cruzadas do dia</button>
             <button data-mode="crossword-random" class="ghost">Aleatório</button>
+            <button data-past-days="crossword" class="ghost">Dias anteriores</button>
           </div>
         </div>
       </div>
     </main>
+
+    <dialog id="past-days-dialog">
+      <h2 id="past-days-title">Dias anteriores</h2>
+      <p class="past-days-legend">
+        <span class="past-day-swatch won"></span> ganho
+        <span class="past-day-swatch lost"></span> perdido
+        <span class="past-day-swatch in-progress"></span> em andamento
+        <span class="past-day-swatch unplayed"></span> não jogado
+      </p>
+      <div id="past-days-grid" class="past-days-grid" aria-label="Dias anteriores"></div>
+      <form method="dialog" class="past-days-close"><button class="ghost">Fechar</button></form>
+    </dialog>
   </section>
 
   <!-- ====================== CLASSIC VIEW ====================== -->
   <section id="classic-view" class="view" hidden>
     <header class="topbar">
       <h1>
-        <button class="back-btn ghost" data-back title="Voltar ao menu" aria-label="Voltar">←</button>
         <img src="./assets/logo-without-bg.png" alt="" class="logo" />Entrelinhas
       </h1>
       <div class="actions">
-        <button id="mode-toggle" class="ghost" title="Alternar modo de jogo">Aleatório</button>
+        <button class="ghost" data-back title="Voltar ao menu">Menu</button>
+        <button id="hint-btn" class="ghost hint-btn" title="Dica" aria-label="Dica" disabled>💡</button>
         <button id="help-btn" class="ghost" title="Como jogar" aria-label="Como jogar">?</button>
       </div>
     </header>
@@ -71,6 +83,8 @@
       </div>
 
       <div id="alpha-hint" class="alpha" aria-label="Letras possíveis"></div>
+
+      <div id="hints" class="hints" aria-live="polite"></div>
 
       <form id="guess-form" autocomplete="off">
         <input
@@ -123,11 +137,10 @@
   <section id="crossword-view" class="view" hidden>
     <header class="topbar">
       <h1>
-        <button class="back-btn ghost" data-back title="Voltar ao menu" aria-label="Voltar">←</button>
         <img src="./assets/logo-without-bg.png" alt="" class="logo" />Entrelinhas Cruzadas
       </h1>
       <div class="actions">
-        <button id="cw-mode-toggle" class="ghost" title="Alternar modo de jogo">Aleatório</button>
+        <button class="ghost" data-back title="Voltar ao menu">Menu</button>
         <button id="cw-help-btn" class="ghost" title="Como jogar" aria-label="Como jogar">?</button>
       </div>
     </header>
