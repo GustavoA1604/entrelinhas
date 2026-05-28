@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content" />
   <meta name="theme-color" content="#1f2330" />
   <title>Entrelinhas: adivinhe a palavra entre os limites</title>
   <meta name="description" content="Jogo diário em português: adivinhe a palavra de 5 letras que está alfabeticamente entre dois limites." />
@@ -68,7 +68,7 @@
       </div>
     </header>
 
-    <main>
+    <main class="game-main">
       <div class="meta">
         <span id="puzzle-label">Palavra do dia</span>
         <span id="puzzle-date"></span>
@@ -81,7 +81,9 @@
         <div id="target-row" class="row target target-hidden"></div>
         <div id="upper-row" class="row bound-sentinel"></div>
       </div>
+    </main>
 
+    <footer class="input-area">
       <div id="alpha-hint" class="alpha" aria-label="Letras possíveis"></div>
 
       <div id="hints" class="hints" aria-live="polite"></div>
@@ -104,7 +106,8 @@
         <button type="submit" hidden aria-hidden="true"></button>
       </form>
 
-    </main>
+      <p class="message" aria-hidden="true"></p>
+    </footer>
 
     <dialog id="help-dialog">
       <h2>Como jogar</h2>
@@ -146,7 +149,7 @@
       </div>
     </header>
 
-    <main class="crossword-main">
+    <main class="crossword-main game-main">
       <div class="meta">
         <span id="cw-puzzle-label">Cruzadas do dia</span>
         <span id="cw-puzzle-date"></span>
@@ -165,7 +168,9 @@
           <div id="cw-list" class="cw-list" aria-live="polite"></div>
         </div>
       </div>
+    </main>
 
+    <footer class="input-area">
       <div id="cw-alpha-hint" class="alpha" aria-label="Letras possíveis"></div>
 
       <div id="cw-hints" class="hints" aria-live="polite"></div>
@@ -188,7 +193,8 @@
         <button type="submit" hidden aria-hidden="true"></button>
       </form>
 
-    </main>
+      <p class="message" aria-hidden="true"></p>
+    </footer>
 
     <dialog id="cw-help-dialog">
       <h2>Como jogar (Cruzadas)</h2>

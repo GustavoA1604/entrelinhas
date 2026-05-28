@@ -1,6 +1,20 @@
 import { initClassic, CLASSIC_STORAGE_PREFIX, DAILY_EPOCH } from "./game.js";
 import { initCrossword, CROSSWORD_STORAGE_PREFIX } from "./crossword.js";
 
+// Keep --app-height tracking the visible viewport (above the on-screen keyboard)
+// so game views can size to it. dvh alone isn't reliable on iOS Safari.
+function updateAppHeight() {
+  const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty("--app-height", h + "px");
+}
+updateAppHeight();
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", updateAppHeight);
+  window.visualViewport.addEventListener("scroll", updateAppHeight);
+} else {
+  window.addEventListener("resize", updateAppHeight);
+}
+
 const views = {
   menu: document.getElementById("menu-view"),
   classic: document.getElementById("classic-view"),

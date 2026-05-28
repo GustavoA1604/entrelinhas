@@ -495,16 +495,9 @@ export function initCrossword({ onBack } = {}) {
   }
 
   function renderHints() {
+    // In crossword mode the revealed letter shows up directly in the grid,
+    // so no persistent banner is needed.
     hintsEl.innerHTML = "";
-    for (const t of state.tipsRevealed) {
-      const letter = letterAt(t.pos[0], t.pos[1]);
-      const div = document.createElement("div");
-      div.className = "hint-banner";
-      div.textContent = letter
-        ? `Dica: letra "${letter.toUpperCase()}" revelada no tabuleiro.`
-        : `Dica: letra revelada no tabuleiro.`;
-      hintsEl.appendChild(div);
-    }
   }
 
   function isHintReady() {
