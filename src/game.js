@@ -1,5 +1,5 @@
-import { ANSWERS } from "./answers.js";
-import { VALID } from "./valid.js";
+import { ANSWERS } from "./data/answers.js";
+import { VALID } from "./data/valid.js";
 
 const MAX_GUESSES = 15;
 const STORAGE_KEY = "entrelinhas:daily";

@@ -76,13 +76,17 @@ Os arquivos crus `_raw_*.txt` / `_raw_*.json` não são necessários para rodar;
 ## Estrutura
 
 ```
-index.html        # marcação das três views (menu / clássico / cruzadas) e diálogos
-styles.css        # tema escuro/claro, layout responsivo, modo compacto para telas baixas
-app.js            # roteador entre views, inicializa cada modo
-game.js           # lógica do modo clássico (módulo ES)
-crossword.js      # gerador + lógica do modo cruzadas
-answers.js        # ANSWERS: lista de respostas
-valid.js          # VALID: Set de palavras aceitas
+index.html              # marcação das três views (menu / clássico / cruzadas) e diálogos
+assets/
+  styles.css            # tema escuro/claro, layout responsivo, modo compacto para telas baixas
+  logo-without-bg.png   # logo do jogo
+src/
+  app.js                # roteador entre views, inicializa cada modo
+  game.js               # lógica do modo clássico (módulo ES)
+  crossword.js          # gerador + lógica do modo cruzadas
+  data/
+    answers.js          # ANSWERS: lista de respostas
+    valid.js            # VALID: Set de palavras aceitas
 ```
 
 ## Geração das listas (referência)

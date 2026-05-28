@@ -1,5 +1,5 @@
-import { ANSWERS } from "./answers.js";
-import { VALID } from "./valid.js";
+import { ANSWERS } from "./data/answers.js";
+import { VALID } from "./data/valid.js";
 
 // === Tunables ===
 const NUM_SECRETS = 5;
