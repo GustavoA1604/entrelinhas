@@ -5,3 +5,8 @@ _raw_*.js
 node_modules/
 .claude
 local/
+
+# Test/tooling output
+playwright-report/
+test-results/
+.playwright/

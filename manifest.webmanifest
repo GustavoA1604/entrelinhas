@@ -1,0 +1,22 @@
+{
+  "name": "Entrelinhas",
+  "short_name": "Entrelinhas",
+  "description": "Jogo diário em português: adivinhe a palavra de 5 letras que está alfabeticamente entre dois limites.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1f2330",
+  "theme_color": "#1f2330",
+  "categories": ["games", "education"],
+  "icons": [
+    {
+      "src": "./assets/logo-without-bg.png",
+      "sizes": "438x569",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

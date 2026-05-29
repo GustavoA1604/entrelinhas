@@ -8,7 +8,7 @@ import { readJSON, writeJSON, migrateLegacyDaily } from "./storage.js";
 import { computeHintState } from "./hint.js";
 
 // === Tunables ===
-const NUM_SECRETS = 5;
+export const NUM_SECRETS = 5;
 const MAX_GUESSES = 50;
 const STORAGE_PREFIX = "entrelinhas:crossword-daily:";
 export const CROSSWORD_STORAGE_PREFIX = STORAGE_PREFIX;
@@ -156,7 +156,7 @@ function tryGenerate(rng, numWords) {
   }
   return { placed };
 }
-function generateCrossword(seed) {
+export function generateCrossword(seed) {
   const rng = seed ? seededRng(seed) : Math.random;
   for (let i = 0; i < GEN_MAX_ATTEMPTS; i++) {
     const r = tryGenerate(rng, NUM_SECRETS);
@@ -301,16 +301,6 @@ export function initCrossword({ onBack } = {}) {
   // --- Hint helpers ---
   function revealedSet() {
     return new Set(state.tipsRevealed.map((t) => `${t.pos[0]},${t.pos[1]}`));
-  }
-  function letterAt(ox, oy) {
-    for (const p of state.placed) {
-      for (let i = 0; i < p.word.length; i++) {
-        const cx = p.dir === "H" ? p.x + i : p.x;
-        const cy = p.dir === "H" ? p.y : p.y + i;
-        if (cx === ox && cy === oy) return p.word[i];
-      }
-    }
-    return null;
   }
   function totalDistance() {
     const nonSecret = state.guesses.filter((g) => !g.isSecret).map((g) => g.word).sort();

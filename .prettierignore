@@ -1,0 +1,6 @@
+src/data/
+node_modules/
+playwright-report/
+test-results/
+local/
+_raw_*

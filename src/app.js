@@ -114,3 +114,10 @@ const initial = (location.hash || "").replace("#", "");
 if (initial === "classic") { showView("classic"); classic.start("daily"); }
 else if (initial === "crossword") { showView("crossword"); crossword.start("daily"); }
 else showView("menu");
+
+// Register the service worker for offline play (no-op when unsupported).
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}

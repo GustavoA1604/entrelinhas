@@ -1,0 +1,24 @@
+{
+  "name": "entrelinhas",
+  "version": "1.0.0",
+  "description": "Versão em português brasileiro do Betweenle, com modo clássico e palavras cruzadas.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://gustavoa1604.github.io/entrelinhas/",
+  "scripts": {
+    "serve": "node scripts/serve.js 8000",
+    "test": "node --test",
+    "test:e2e": "playwright test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@playwright/test": "^1.49.0",
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2"
+  }
+}
