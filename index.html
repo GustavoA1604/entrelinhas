@@ -57,9 +57,28 @@
             <h2>Clássico</h2>
             <p>Uma palavra secreta entre dois limites alfabéticos.</p>
             <div class="menu-buttons">
-              <button data-mode="classic-daily">Do dia</button>
-              <button data-mode="classic-random" class="ghost">Aleatório</button>
-              <button data-past-days="classic" class="ghost">Dias anteriores</button>
+              <div class="split-btn">
+                <button data-mode="classic-daily">Do dia</button>
+                <button
+                  class="split-icon"
+                  data-past-days="classic"
+                  title="Escolher uma data"
+                  aria-label="Escolher uma data"
+                >
+                  📅
+                </button>
+              </div>
+              <div class="split-btn ghost">
+                <button class="ghost" data-mode="classic-random">Aleatório</button>
+                <button
+                  class="split-icon ghost"
+                  data-seed-input="classic"
+                  title="Jogar com um código"
+                  aria-label="Jogar com um código"
+                >
+                  🔗
+                </button>
+              </div>
             </div>
           </div>
 
@@ -67,9 +86,28 @@
             <h2>Palavras Cruzadas</h2>
             <p>Várias palavras secretas interligadas. Acerte todas para completar o tabuleiro.</p>
             <div class="menu-buttons">
-              <button data-mode="crossword-daily">Do dia</button>
-              <button data-mode="crossword-random" class="ghost">Aleatório</button>
-              <button data-past-days="crossword" class="ghost">Dias anteriores</button>
+              <div class="split-btn">
+                <button data-mode="crossword-daily">Do dia</button>
+                <button
+                  class="split-icon"
+                  data-past-days="crossword"
+                  title="Escolher uma data"
+                  aria-label="Escolher uma data"
+                >
+                  📅
+                </button>
+              </div>
+              <div class="split-btn ghost">
+                <button class="ghost" data-mode="crossword-random">Aleatório</button>
+                <button
+                  class="split-icon ghost"
+                  data-seed-input="crossword"
+                  title="Jogar com um código"
+                  aria-label="Jogar com um código"
+                >
+                  🔗
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -85,6 +123,32 @@
         </p>
         <div id="past-days-grid" class="past-days-grid" aria-label="Dias anteriores"></div>
         <form method="dialog" class="past-days-close"><button class="ghost">Fechar</button></form>
+      </dialog>
+
+      <dialog id="seed-dialog">
+        <h2 id="seed-dialog-title">Jogar com um código</h2>
+        <p class="seed-dialog-desc">
+          Cole o código (ou o link) de um jogo aleatório para jogar exatamente o mesmo jogo que
+          outra pessoa.
+        </p>
+        <form id="seed-form">
+          <input
+            id="seed-dialog-input"
+            type="text"
+            inputmode="text"
+            placeholder="ex.: a1b2c3d4"
+            autocapitalize="none"
+            autocorrect="off"
+            spellcheck="false"
+            autocomplete="off"
+            aria-describedby="seed-error"
+          />
+          <p id="seed-error" class="seed-error" role="alert" hidden></p>
+          <div class="end-actions">
+            <button type="submit">Jogar</button>
+            <button type="button" class="ghost" data-seed-cancel>Cancelar</button>
+          </div>
+        </form>
       </dialog>
     </section>
 
@@ -174,8 +238,15 @@
           <code>a</code>–<code>z</code>).
         </p>
         <p>
-          Modo <strong>Palavra do dia</strong>: uma palavra por dia, igual para todo mundo. Modo
-          <strong>Aleatório</strong>: jogue quantas vezes quiser.
+          Modo <strong>Palavra do dia</strong>: uma palavra por dia, igual para todo mundo (use o
+          <strong>📅</strong> para escolher uma data anterior). Modo <strong>Aleatório</strong>:
+          jogue quantas vezes quiser; use o <strong>🔗</strong> para colar o código de um jogo e
+          jogar exatamente o mesmo.
+        </p>
+        <p>
+          Toque na data ou no código (no topo) para copiar um link do jogo — quem abrir cai
+          exatamente no mesmo desafio. O botão <strong>Compartilhar</strong> no fim inclui esse link
+          no resultado.
         </p>
         <p>
           O botão <strong>💡</strong> no topo libera dicas quando o intervalo aperta. O anel ao
@@ -294,6 +365,11 @@
         </p>
         <p>Palpites fora dos limites — ou em faixas já descartadas — são bloqueados.</p>
         <p>Você tem <strong>50 tentativas</strong> para acertar todas.</p>
+        <p>
+          Use o <strong>📅</strong> para jogar as cruzadas de um dia anterior e o
+          <strong>🔗</strong> para colar o código de um jogo aleatório. Toque na data ou no código
+          (no topo) para copiar um link — quem abrir cai exatamente nas mesmas cruzadas.
+        </p>
         <p>
           O botão <strong>💡</strong> no topo libera até <strong>3 dicas</strong> conforme você se
           aproxima das secretas. O anel ao redor mostra o progresso: primeiro enche conforme você

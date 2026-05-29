@@ -453,9 +453,78 @@ footer {
 }
 .menu-buttons {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
   margin-top: 4px;
+}
+
+/* Split button: a main action joined to an icon action. */
+.split-btn {
+  display: flex;
+  width: 100%;
+}
+.split-btn > button {
+  border-radius: 0;
+}
+.split-btn > button:first-child {
+  flex: 1;
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+}
+.split-btn > .split-icon {
+  flex: 0 0 auto;
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  padding: 10px 13px;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+/* Seam between the two halves. */
+.split-btn:not(.ghost) > .split-icon {
+  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.22);
+}
+.split-btn.ghost > button:first-child {
+  border-right: none;
+}
+
+/* Clickable date/seed chip in the game meta bar (copies the share link). */
+.link-chip {
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+.link-chip:hover {
+  color: var(--fg);
+}
+
+/* Seed dialog */
+.seed-dialog-desc {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+#seed-dialog-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  letter-spacing: 0.04em;
+}
+#seed-dialog-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+#seed-dialog-input.invalid {
+  border-color: var(--bad);
+}
+.seed-error {
+  margin: -4px 0 12px;
+  color: var(--bad);
+  font-size: 0.88rem;
 }
 
 /* ====================== Hints ====================== */

@@ -54,3 +54,47 @@ test("past-days dialog opens and lists at least today", async ({ page }) => {
   await expect(page.locator("#past-days-dialog")).toBeVisible();
   await expect(page.locator("#past-days-grid .past-day-btn")).not.toHaveCount(0);
 });
+
+test("deep link to a past daily loads that exact date", async ({ page }) => {
+  await page.goto("/#classic/daily/2026-05-25");
+  await page.reload(); // a hash-only goto is same-document; reload re-runs the router
+  await expect(page.locator("#classic-view")).toBeVisible();
+  await expect(page.locator("#puzzle-date")).toHaveText("25/05/2026");
+});
+
+test("random game generates a seed, shows it, and puts it in the URL", async ({ page }) => {
+  await page.locator('[data-mode="classic-random"]').click();
+  await expect(page.locator("#classic-view")).toBeVisible();
+  await expect(page.locator("#puzzle-date")).toContainText("código:");
+  await expect(page).toHaveURL(/#classic\/random\/.+/);
+});
+
+test("deep link to a random seed reopens the same seed", async ({ page }) => {
+  await page.goto("/#crossword/random/abc123");
+  await page.reload(); // a hash-only goto is same-document; reload re-runs the router
+  await expect(page.locator("#crossword-view")).toBeVisible();
+  await expect(page.locator("#cw-puzzle-date")).toHaveText("código: abc123");
+  await expect(page).toHaveURL(/#crossword\/random\/abc123$/);
+});
+
+test("seed dialog plays the pasted seed", async ({ page }) => {
+  await page.locator('[data-seed-input="classic"]').click();
+  await expect(page.locator("#seed-dialog")).toBeVisible();
+  await page.locator("#seed-dialog-input").fill("deadbeef");
+  await page.locator("#seed-form button[type=submit]").click();
+  await expect(page.locator("#classic-view")).toBeVisible();
+  await expect(page.locator("#puzzle-date")).toHaveText("código: deadbeef");
+  await expect(page).toHaveURL(/#classic\/random\/deadbeef$/);
+});
+
+test("seed dialog shows an error for invalid input and stays open", async ({ page }) => {
+  await page.locator('[data-seed-input="classic"]').click();
+  await page.locator("#seed-dialog-input").fill("qualquer dica");
+  await page.locator("#seed-form button[type=submit]").click();
+  await expect(page.locator("#seed-error")).toBeVisible();
+  await expect(page.locator("#seed-dialog")).toBeVisible();
+  await expect(page.locator("#menu-view")).toBeVisible();
+  // typing again clears the error
+  await page.locator("#seed-dialog-input").fill("ok123");
+  await expect(page.locator("#seed-error")).toBeHidden();
+});

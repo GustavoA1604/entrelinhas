@@ -33,6 +33,14 @@ export function listDateKeys(epoch, today) {
   return out;
 }
 
+// Short, clipboard/URL-friendly token used to seed (and share) a random game.
+export function makeSeed() {
+  return (Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6)).slice(
+    0,
+    8,
+  );
+}
+
 export function seededRng(seed) {
   let h = 1779033703 ^ seed.length;
   for (let i = 0; i < seed.length; i++) {

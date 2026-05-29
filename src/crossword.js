@@ -3,12 +3,14 @@ import { VALID } from "./data/valid.js";
 import { showToast } from "./toast.js";
 import { shareOrCopy } from "./share-helpers.js";
 import { SENTINEL_LOW, SENTINEL_HIGH, normalize, pluralWords } from "./dictionary.js";
-import { todayKey, formatDate, seededRng } from "./daily.js";
+import { todayKey, formatDate, seededRng, makeSeed } from "./daily.js";
 import { readJSON, writeJSON, migrateLegacyDaily } from "./storage.js";
 import { computeHintState } from "./hint.js";
 import { computeCrosswordList, pruneRows, totalUnsolvedDistance } from "./crossword-list.js";
+import { buildShareUrl } from "./routes.js";
 
 // === Tunables ===
+const MODE = "crossword";
 export const NUM_SECRETS = 5;
 const MAX_GUESSES = 50;
 const STORAGE_PREFIX = "entrelinhas:crossword-daily:";
@@ -174,7 +176,7 @@ export function generateCrossword(seed) {
 }
 
 // === Public init ===
-export function initCrossword({ onBack } = {}) {
+export function initCrossword({ onBack, onRoute } = {}) {
   const grid = $("cw-grid");
   const list = $("cw-list");
   const input = $("cw-guess-input");
@@ -200,6 +202,7 @@ export function initCrossword({ onBack } = {}) {
   const state = {
     mode: "daily",
     dateKey: null,
+    seed: null,
     isHistorical: false,
     placed: [],
     secrets: [], // lowercase, in placement order
@@ -213,6 +216,13 @@ export function initCrossword({ onBack } = {}) {
     selectingTip: false,
     tipStartRange: null,
   };
+
+  // Identifies the current game for routing and shareable links.
+  function descriptor() {
+    return state.mode === "daily"
+      ? { mode: MODE, variant: "daily", param: state.dateKey }
+      : { mode: MODE, variant: "random", param: state.seed };
+  }
 
   function setMessage(text, kind = "") {
     if (text) showToast(text, kind);
@@ -529,7 +539,8 @@ export function initCrossword({ onBack } = {}) {
     writeJSON(STORAGE_PREFIX + state.dateKey, payload);
   }
 
-  function startGame(mode, customDateKey) {
+  // For daily, `param` is the date key; for random, it's the seed (generated if absent).
+  function startGame(mode, param) {
     if (endDialog.open) endDialog.close();
     state.mode = mode;
     state.guesses = [];
@@ -544,7 +555,8 @@ export function initCrossword({ onBack } = {}) {
     let restored = false;
     if (mode === "daily") {
       const today = todayKey();
-      state.dateKey = customDateKey || today;
+      state.dateKey = param || today;
+      state.seed = null;
       state.isHistorical = state.dateKey !== today;
       const saved = loadDaily(state.dateKey);
       if (
@@ -568,13 +580,16 @@ export function initCrossword({ onBack } = {}) {
       puzzleDate.textContent = formatDate(state.dateKey);
     } else {
       state.dateKey = null;
+      state.seed = param || makeSeed();
       state.isHistorical = false;
       puzzleLabel.textContent = "Modo aleatório";
-      puzzleDate.textContent = "";
+      puzzleDate.textContent = `código: ${state.seed}`;
     }
+    puzzleDate.title = "Copiar link do jogo";
 
     if (!restored) {
-      const seed = mode === "daily" ? `crossword:${state.dateKey}` : null;
+      const seed =
+        mode === "daily" ? `crossword:${state.dateKey}` : `crossword:random:${state.seed}`;
       const puzzle = generateCrossword(seed);
       state.placed = puzzle.placed;
       state.secrets = puzzle.placed.map((p) => p.word);
@@ -587,6 +602,7 @@ export function initCrossword({ onBack } = {}) {
     input.disabled = state.done;
     renderAll();
     updateHintButton();
+    onRoute && onRoute(descriptor());
     if (state.done) showEndDialog();
   }
 
@@ -637,13 +653,20 @@ export function initCrossword({ onBack } = {}) {
         : "Entrelinhas Cruzadas (aleatório)";
     const score = `${state.solvedSet.size}/${state.secrets.length} em ${state.guesses.length}/${MAX_GUESSES}`;
     const events = buildEventLines().join("\n");
-    const footer = "Jogue também em https://gustavoa1604.github.io/entrelinhas/";
+    // The link reopens this exact puzzle (same date, or same random seed).
+    const footer = `Jogue este: ${buildShareUrl(descriptor())}`;
     return `${header}\n${score}\n\n${events}\n\n${footer}`;
   }
   async function share() {
     const result = await shareOrCopy(buildShareText());
     if (result === "copied") setMessage("Resultado copiado!", "success");
     else if (result === "failed") setMessage("Não foi possível copiar o resultado.", "error");
+  }
+  // Copy/share a link to the current puzzle (used by the date/seed chip).
+  async function shareLink() {
+    const result = await shareOrCopy(buildShareUrl(descriptor()));
+    if (result === "copied") setMessage("Link copiado!", "success");
+    else if (result === "failed") setMessage("Não foi possível copiar o link.", "error");
   }
 
   // --- Wiring ---
@@ -705,6 +728,8 @@ export function initCrossword({ onBack } = {}) {
     if (typeof helpDialog.showModal === "function") helpDialog.showModal();
   });
   shareBtn.addEventListener("click", share);
+  puzzleDate.classList.add("link-chip");
+  puzzleDate.addEventListener("click", shareLink);
   playAgainBtn.addEventListener("click", () => {
     endDialog.close();
     startGame("random");
@@ -729,8 +754,8 @@ export function initCrossword({ onBack } = {}) {
   window.addEventListener("focus", maybeRolloverDaily);
 
   return {
-    start(mode, dateKey) {
-      startGame(mode, dateKey);
+    start(mode, param) {
+      startGame(mode, param);
       input.focus({ preventScroll: true });
     },
     focus() {

@@ -2,6 +2,7 @@ import { initClassic, CLASSIC_STORAGE_PREFIX, DAILY_EPOCH } from "./game.js";
 import { initCrossword, CROSSWORD_STORAGE_PREFIX } from "./crossword.js";
 import { todayKey, listDateKeys } from "./daily.js";
 import { readJSON } from "./storage.js";
+import { parseHash, buildHash, extractSeed } from "./routes.js";
 
 // Keep --app-height tracking the visible viewport (above the on-screen keyboard)
 // so game views can size to it. dvh alone isn't reliable on iOS Safari.
@@ -25,31 +26,35 @@ const views = {
 
 function showView(name) {
   for (const [k, el] of Object.entries(views)) el.hidden = k !== name;
+}
+
+// Reflect the active game in the URL hash so it can be copied/shared and
+// reopened to the exact same puzzle. Called by each game via onRoute.
+function setRoute(descriptor) {
   try {
-    history.replaceState({ view: name }, "", `#${name}`);
+    const url = descriptor ? "#" + buildHash(descriptor) : location.pathname + location.search;
+    history.replaceState({}, "", url);
   } catch {}
 }
 
-const classic = initClassic({ onBack: () => showView("menu") });
-const crossword = initCrossword({ onBack: () => showView("menu") });
+function goMenu() {
+  showView("menu");
+  setRoute(null);
+}
 
-// Menu buttons
+const classic = initClassic({ onBack: goMenu, onRoute: setRoute });
+const crossword = initCrossword({ onBack: goMenu, onRoute: setRoute });
+
+function startGame(mode, variant, param) {
+  showView(mode);
+  (mode === "crossword" ? crossword : classic).start(variant, param);
+}
+
+// Menu buttons (the main half of each split button)
 document.querySelectorAll("[data-mode]").forEach((btn) => {
   btn.addEventListener("click", () => {
-    const mode = btn.getAttribute("data-mode");
-    if (mode === "classic-daily") {
-      showView("classic");
-      classic.start("daily");
-    } else if (mode === "classic-random") {
-      showView("classic");
-      classic.start("random");
-    } else if (mode === "crossword-daily") {
-      showView("crossword");
-      crossword.start("daily");
-    } else if (mode === "crossword-random") {
-      showView("crossword");
-      crossword.start("random");
-    }
+    const [mode, variant] = btn.getAttribute("data-mode").split("-");
+    startGame(mode, variant);
   });
 });
 
@@ -65,7 +70,7 @@ document.querySelectorAll("[data-back]").forEach((btn) => {
     if (game && game.shouldConfirmExit && game.shouldConfirmExit()) {
       if (!confirm("Você tem certeza? O progresso desta partida aleatória será perdido.")) return;
     }
-    showView("menu");
+    goMenu();
   });
 });
 
@@ -105,13 +110,7 @@ function openPastDays(mode) {
     btn.title = key + (key === today ? " (hoje)" : "");
     btn.addEventListener("click", () => {
       pastDialog.close();
-      if (mode === "crossword") {
-        showView("crossword");
-        crossword.start("daily", key);
-      } else {
-        showView("classic");
-        classic.start("daily", key);
-      }
+      startGame(mode, "daily", key);
     });
     pastGrid.appendChild(btn);
   }
@@ -126,15 +125,67 @@ document.addEventListener("click", (e) => {
   openPastDays(trigger.getAttribute("data-past-days"));
 });
 
-// Initial view: respect hash, else menu
-const initial = (location.hash || "").replace("#", "");
-if (initial === "classic") {
-  showView("classic");
-  classic.start("daily");
-} else if (initial === "crossword") {
-  showView("crossword");
-  crossword.start("daily");
-} else showView("menu");
+// === Seed dialog (play / share a specific random game) ===
+const seedDialog = document.getElementById("seed-dialog");
+const seedForm = document.getElementById("seed-form");
+const seedDialogInput = document.getElementById("seed-dialog-input");
+const seedDialogTitle = document.getElementById("seed-dialog-title");
+const seedError = document.getElementById("seed-error");
+let seedDialogMode = "classic";
+
+function setSeedError(message) {
+  if (seedError) {
+    seedError.textContent = message || "";
+    seedError.hidden = !message;
+  }
+  if (seedDialogInput) seedDialogInput.classList.toggle("invalid", !!message);
+}
+
+document.addEventListener("click", (e) => {
+  const trigger = e.target.closest("[data-seed-input]");
+  if (!trigger || !seedDialog) return;
+  e.preventDefault();
+  seedDialogMode = trigger.getAttribute("data-seed-input");
+  if (seedDialogTitle) {
+    seedDialogTitle.textContent =
+      seedDialogMode === "crossword" ? "Cruzadas com código" : "Clássico com código";
+  }
+  if (seedDialogInput) seedDialogInput.value = "";
+  setSeedError("");
+  if (typeof seedDialog.showModal === "function") seedDialog.showModal();
+  else seedDialog.setAttribute("open", "");
+  if (seedDialogInput) seedDialogInput.focus();
+});
+
+if (seedForm) {
+  seedForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const raw = seedDialogInput ? seedDialogInput.value : "";
+    const seed = extractSeed(raw);
+    if (!seed) {
+      setSeedError(
+        raw.trim()
+          ? "Código inválido. Cole só o código (sem espaços) ou um link de jogo."
+          : "Digite um código ou cole um link de jogo.",
+      );
+      if (seedDialogInput) seedDialogInput.focus();
+      return;
+    }
+    seedDialog.close();
+    startGame(seedDialogMode, "random", seed);
+  });
+}
+if (seedDialogInput) {
+  seedDialogInput.addEventListener("input", () => setSeedError(""));
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-seed-cancel]") && seedDialog) seedDialog.close();
+});
+
+// Initial view: respect the hash deep-link, else show the menu.
+const route = parseHash(location.hash);
+if (route) startGame(route.mode, route.variant, route.param || undefined);
+else showView("menu");
 
 // Register the service worker for offline play (no-op when unsupported).
 if ("serviceWorker" in navigator) {

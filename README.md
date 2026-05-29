@@ -7,8 +7,8 @@ Versão em português brasileiro do [Betweenle](https://betweenle.com/), com doi
 Ao abrir o jogo, um menu deixa escolher entre:
 
 - **Clássico** — adivinhe a palavra secreta de 5 letras que está alfabeticamente _entre_ dois limites. A cada tentativa, o intervalo se estreita. 15 tentativas.
-  - _Palavra do dia_: a mesma palavra para todo mundo, baseada na data.
-  - _Aleatório_: jogue quantas vezes quiser.
+  - _Palavra do dia_: a mesma palavra para todo mundo, baseada na data. O **📅** ao lado abre o seletor de dias anteriores.
+  - _Aleatório_: jogue quantas vezes quiser. Cada partida tem um **código** mostrado no topo; o **🔗** ao lado abre um campo para colar o código (ou o link) de outra pessoa e jogar exatamente o mesmo jogo.
 - **Palavras Cruzadas** — várias palavras secretas (5 por padrão) montadas como num crossword, todas interligadas. À esquerda fica o tabuleiro; à direita, uma lista alfabética dos palpites, mostrando quantas secretas ainda restam acima/abaixo de cada um e a distância em palavras do dicionário até a secreta mais próxima em cada direção. Acertar uma secreta a revela no tabuleiro e a mantém na lista (marcada com ✓) como um novo limite, estreitando o intervalo das secretas restantes. Palpites em faixas já descartadas (fora dos limites ou em gaps com zero secretas) são bloqueados. 50 tentativas.
   - _Cruzadas do dia_ e _Aleatório_, mesma lógica do clássico.
 
@@ -20,7 +20,15 @@ As cruzadas são geradas em tempo real a partir de `ANSWERS`, com seed determin�
 
 ### Compartilhar
 
-O botão "Compartilhar" copia ou envia (via Web Share API) o resultado em texto. No modo cruzadas, o texto inclui o estado atual do tabuleiro em bloco monoespaçado (cercado por <code>\`\`\`</code>), com letras maiúsculas para as secretas resolvidas e `·` para as ainda em aberto.
+O botão "Compartilhar" copia ou envia (via Web Share API) o resultado em texto, sempre acompanhado de um **link que reabre exatamente aquele jogo** — a mesma data (diário) ou o mesmo código (aleatório). Tocar na data/código no topo da partida copia esse link diretamente.
+
+O link usa o hash da URL:
+
+- `#classic` / `#crossword` — diário de hoje;
+- `#classic/daily/2026-05-29` — diário de uma data específica;
+- `#classic/random/<código>` — partida aleatória reproduzível a partir do código.
+
+Ao abrir um link assim, o jogo carrega direto na partida correspondente. A lógica de parsing/serialização vive em `routes.js`.
 
 ## Listas de palavras
 
@@ -41,7 +49,7 @@ python -m http.server 8000
 npx http-server -p 8000
 ```
 
-Depois abra <http://localhost:8000>. O menu é a tela inicial; cada modo é uma view separada, alternada via JS. Há suporte a `#classic` e `#crossword` no hash para deep-link.
+Depois abra <http://localhost:8000>. O menu é a tela inicial; cada modo é uma view separada, alternada via JS. O hash da URL faz deep-link para a partida exata (veja [Compartilhar](#compartilhar)).
 
 ## Publicando no GitHub Pages
 
@@ -81,13 +89,23 @@ assets/
   styles.css            # tema escuro/claro, layout responsivo, modo compacto para telas baixas
   logo-without-bg.png   # logo do jogo
 src/
-  app.js                # roteador entre views, inicializa cada modo
+  app.js                # roteador entre views, deep-links, diálogos de data/código
   game.js               # lógica do modo clássico (módulo ES)
   crossword.js          # gerador + lógica do modo cruzadas
+  crossword-list.js     # lógica pura da lista lateral das cruzadas (testável)
+  routes.js             # parsing/serialização do hash e links compartilháveis
+  dictionary.js         # normalização, distância no dicionário, sentinelas
+  daily.js              # chaves de data, RNG semeada, geração de códigos aleatórios
+  hint.js               # progresso das dicas (função pura)
+  storage.js            # helpers de localStorage
+  share-helpers.js      # Web Share API + cópia para a área de transferência
+  toast.js              # toasts efêmeros
   data/
     answers.js          # ANSWERS: lista de respostas
     valid.js            # VALID: Set de palavras aceitas
 ```
+
+Os testes unitários (`node --test`) ficam em `test/` e os de ponta a ponta (Playwright) em `e2e/`.
 
 ## Geração das listas (referência)
 

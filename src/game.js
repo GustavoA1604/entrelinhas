@@ -9,10 +9,12 @@ import {
   distanceBetween,
   pluralWords,
 } from "./dictionary.js";
-import { todayKey, formatDate, seededRng } from "./daily.js";
+import { todayKey, formatDate, seededRng, makeSeed } from "./daily.js";
 import { readJSON, writeJSON, migrateLegacyDaily } from "./storage.js";
 import { computeHintState } from "./hint.js";
+import { buildShareUrl } from "./routes.js";
 
+const MODE = "classic";
 const MAX_GUESSES = 15;
 const HINT_TIPS = [
   { id: "last", rangeMax: 100, idleMs: 10_000 },
@@ -28,11 +30,10 @@ migrateLegacyDaily("entrelinhas:daily", STORAGE_PREFIX);
 const $ = (id) => document.getElementById(id);
 
 function pickTarget(seed) {
-  const rng = seed ? seededRng(seed) : Math.random;
-  return ANSWERS[Math.floor(rng() * ANSWERS.length)];
+  return ANSWERS[Math.floor(seededRng(seed)() * ANSWERS.length)];
 }
 
-export function initClassic({ onBack } = {}) {
+export function initClassic({ onBack, onRoute } = {}) {
   const lowerRow = $("lower-row");
   const targetRow = $("target-row");
   const upperRow = $("upper-row");
@@ -62,11 +63,19 @@ export function initClassic({ onBack } = {}) {
     done: false,
     won: false,
     dateKey: null,
+    seed: null,
     isHistorical: false,
     tipsRevealed: [],
     lastGuessAt: Date.now(),
     tipStartRange: null,
   };
+
+  // Identifies the current game for routing and shareable links.
+  function descriptor() {
+    return state.mode === "daily"
+      ? { mode: MODE, variant: "daily", param: state.dateKey }
+      : { mode: MODE, variant: "random", param: state.seed };
+  }
 
   function recomputeBounds() {
     let lo = SENTINEL_LOW,
@@ -152,7 +161,8 @@ export function initClassic({ onBack } = {}) {
     else showToast("");
   }
 
-  function startGame(mode, customDateKey) {
+  // For daily, `param` is the date key; for random, it's the seed (generated if absent).
+  function startGame(mode, param) {
     if (endDialog.open) endDialog.close();
     state.mode = mode;
     state.guesses = [];
@@ -166,7 +176,8 @@ export function initClassic({ onBack } = {}) {
 
     if (mode === "daily") {
       const today = todayKey();
-      state.dateKey = customDateKey || today;
+      state.dateKey = param || today;
+      state.seed = null;
       state.isHistorical = state.dateKey !== today;
       state.target = pickTarget(state.dateKey);
       puzzleLabel.textContent = "Palavra do dia";
@@ -187,11 +198,13 @@ export function initClassic({ onBack } = {}) {
       }
     } else {
       state.dateKey = null;
+      state.seed = param || makeSeed();
       state.isHistorical = false;
-      state.target = pickTarget(null);
+      state.target = pickTarget("random:" + state.seed);
       puzzleLabel.textContent = "Modo aleatório";
-      puzzleDate.textContent = "";
+      puzzleDate.textContent = `código: ${state.seed}`;
     }
+    puzzleDate.title = "Copiar link do jogo";
 
     setMessage("");
     input.value = "";
@@ -199,6 +212,7 @@ export function initClassic({ onBack } = {}) {
     renderHints();
     updateHintButton();
     render();
+    onRoute && onRoute(descriptor());
     if (state.done) showEndDialog();
   }
 
@@ -394,7 +408,8 @@ export function initClassic({ onBack } = {}) {
         ? `Entrelinhas ${formatDate(state.dateKey)}`
         : "Entrelinhas (aleatório)";
     const score = state.won ? `${state.guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
-    const footer = "Jogue também em https://gustavoa1604.github.io/entrelinhas/";
+    // The link reopens this exact puzzle (same date, or same random seed).
+    const footer = `Jogue este: ${buildShareUrl(descriptor())}`;
     return `${header} ${score}\n${buildSummaryLines({ includeWords: false }).join("\n")}\n\n${footer}`;
   }
 
@@ -402,6 +417,13 @@ export function initClassic({ onBack } = {}) {
     const result = await shareOrCopy(buildShareText());
     if (result === "copied") setMessage("Resultado copiado!", "success");
     else if (result === "failed") setMessage("Não foi possível copiar o resultado", "error");
+  }
+
+  // Copy/share a link to the current puzzle (used by the date/seed chip).
+  async function shareLink() {
+    const result = await shareOrCopy(buildShareUrl(descriptor()));
+    if (result === "copied") setMessage("Link copiado!", "success");
+    else if (result === "failed") setMessage("Não foi possível copiar o link", "error");
   }
 
   form.addEventListener("submit", (e) => {
@@ -454,6 +476,8 @@ export function initClassic({ onBack } = {}) {
     if (typeof helpDialog.showModal === "function") helpDialog.showModal();
   });
   shareBtn.addEventListener("click", share);
+  puzzleDate.classList.add("link-chip");
+  puzzleDate.addEventListener("click", shareLink);
   playAgainBtn.addEventListener("click", () => {
     endDialog.close();
     startGame("random");
@@ -478,8 +502,8 @@ export function initClassic({ onBack } = {}) {
   window.addEventListener("focus", maybeRolloverDaily);
 
   return {
-    start(mode, dateKey) {
-      startGame(mode, dateKey);
+    start(mode, param) {
+      startGame(mode, param);
       input.focus({ preventScroll: true });
     },
     focus() {
