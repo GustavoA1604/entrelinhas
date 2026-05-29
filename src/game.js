@@ -417,7 +417,7 @@ export function initClassic({ onBack } = {}) {
   function buildShareText() {
     const header = state.mode === "daily" ? `Entrelinhas ${formatDate(state.dateKey)}` : "Entrelinhas (aleatório)";
     const score = state.won ? `${state.guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
-    const footer = "Jogue também em https://gustavoa1604.github.io/entrelinhas/"
+    const footer = "Jogue também em https://gustavoa1604.github.io/entrelinhas/";
     return `${header} ${score}\n${buildSummaryLines({ includeWords: false }).join("\n")}\n\n${footer}`;
   }
 
@@ -466,7 +466,8 @@ export function initClassic({ onBack } = {}) {
     updateHintButton();
     saveDaily();
   });
-  setInterval(updateHintButton, 500);
+  const classicView = $("classic-view");
+  setInterval(() => { if (!document.hidden && classicView && !classicView.hidden) updateHintButton(); }, 500);
   helpBtn.addEventListener("click", () => { if (typeof helpDialog.showModal === "function") helpDialog.showModal(); });
   shareBtn.addEventListener("click", share);
   playAgainBtn.addEventListener("click", () => { endDialog.close(); startGame("random"); });

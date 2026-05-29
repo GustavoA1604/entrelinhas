@@ -213,8 +213,14 @@ function generateCrossword(seed) {
     const r = tryGenerate(rng, NUM_SECRETS);
     if (r) return r;
   }
-  // Should be rare; fall back to a tiny puzzle
-  return tryGenerate(seededRng("fallback"), NUM_SECRETS);
+  // Should be rare. Keep trying with fresh fallback seeds, shrinking the puzzle
+  // as a last resort so we never return null (a single word always places).
+  for (let target = NUM_SECRETS; target >= 1; target--) {
+    for (let i = 0; i < GEN_MAX_ATTEMPTS; i++) {
+      const r = tryGenerate(seededRng(`fallback:${target}:${i}`), target);
+      if (r) return r;
+    }
+  }
 }
 
 // === Public init ===
@@ -738,14 +744,12 @@ export function initCrossword({ onBack } = {}) {
     const header = state.mode === "daily" ? `Entrelinhas Cruzadas ${formatDate(state.dateKey)}` : "Entrelinhas Cruzadas (aleatório)";
     const score = `${state.solvedSet.size}/${state.secrets.length} em ${state.guesses.length}/${MAX_GUESSES}`;
     const events = buildEventLines().join("\n");
-    const footer = "Jogue também em https://gustavoa1604.github.io/entrelinhas/"
+    const footer = "Jogue também em https://gustavoa1604.github.io/entrelinhas/";
     return `${header}\n${score}\n\n${events}\n\n${footer}`;
   }
   async function share() {
     const text = buildShareText();
-    console.log("Shared text")
     if (isMobileDevice() && navigator.share) {
-      console.log("Trying to share")
       try { await navigator.share({ text }); return; }
       catch (err) {
         if (err && err.name === "AbortError") return;
@@ -775,7 +779,6 @@ export function initCrossword({ onBack } = {}) {
       const range = totalDistance();
       const idle = Date.now() - state.lastGuessAt;
       if (range > next.rangeMax) {
-        const need = range - next.rangeMax;
         showToast("Chegue mais próximo da resposta para liberar a próxima dica", "warn");
       } else {
         const remainSec = Math.max(1, Math.ceil((next.idleMs - idle) / 1000));
@@ -797,11 +800,18 @@ export function initCrossword({ onBack } = {}) {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && state.selectingTip) stopSelecting();
   });
-  setInterval(updateHintButton, 500);
+  const crosswordView = $("crossword-view");
+  setInterval(() => { if (!document.hidden && crosswordView && !crosswordView.hidden) updateHintButton(); }, 500);
   helpBtn.addEventListener("click", () => { if (typeof helpDialog.showModal === "function") helpDialog.showModal(); });
   shareBtn.addEventListener("click", share);
   playAgainBtn.addEventListener("click", () => { endDialog.close(); startGame("random"); });
   endMenuBtn.addEventListener("click", () => { endDialog.close(); onBack && onBack(); });
+
+  function maybeRolloverDaily() {
+    if (state.mode === "daily" && !state.isHistorical && state.dateKey && state.dateKey !== todayKey()) startGame("daily");
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) maybeRolloverDaily(); });
+  window.addEventListener("focus", maybeRolloverDaily);
 
   return {
     start(mode, dateKey) { startGame(mode, dateKey); input.focus({ preventScroll: true }); },
