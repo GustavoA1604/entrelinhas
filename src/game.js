@@ -1,7 +1,11 @@
 import { ANSWERS } from "./data/answers.js";
 import { VALID } from "./data/valid.js";
 import { showToast } from "./toast.js";
-import { isMobileDevice, copyToClipboard } from "./share-helpers.js";
+import { shareOrCopy } from "./share-helpers.js";
+import { SENTINEL_LOW, SENTINEL_HIGH, normalize, distanceBetween, pluralWords } from "./dictionary.js";
+import { todayKey, formatDate, seededRng } from "./daily.js";
+import { readJSON, writeJSON, migrateLegacyDaily } from "./storage.js";
+import { computeHintState } from "./hint.js";
 
 const MAX_GUESSES = 15;
 const HINT_TIPS = [
@@ -13,78 +17,10 @@ export const CLASSIC_STORAGE_PREFIX = STORAGE_PREFIX;
 export const DAILY_EPOCH = "2026-05-25";
 
 // One-time migration of the legacy single-slot key into a per-date entry.
-try {
-  const legacy = JSON.parse(localStorage.getItem("entrelinhas:daily") || "null");
-  if (legacy && typeof legacy === "object" && legacy.dateKey) {
-    if (!localStorage.getItem(STORAGE_PREFIX + legacy.dateKey)) {
-      localStorage.setItem(STORAGE_PREFIX + legacy.dateKey, JSON.stringify(legacy));
-    }
-    localStorage.removeItem("entrelinhas:daily");
-  }
-} catch {}
-const SENTINEL_LOW = "aaaaa";
-const SENTINEL_HIGH = "zzzzz";
-
-// Sorted array of valid words for distance and range queries
-const VALID_SORTED = [...VALID].sort();
+migrateLegacyDaily("entrelinhas:daily", STORAGE_PREFIX);
 
 const $ = (id) => document.getElementById(id);
 
-function stripAccents(s) { return s.normalize("NFD").replace(/\p{M}/gu, ""); }
-function normalize(s) { return stripAccents(s).toLowerCase().trim(); }
-
-// Binary search: first index i where arr[i] >= x
-function lowerBoundIdx(arr, x) {
-  let lo = 0, hi = arr.length;
-  while (lo < hi) {
-    const m = (lo + hi) >> 1;
-    if (arr[m] < x) lo = m + 1; else hi = m;
-  }
-  return lo;
-}
-function upperBoundIdx(arr, x) {
-  let lo = 0, hi = arr.length;
-  while (lo < hi) {
-    const m = (lo + hi) >> 1;
-    if (arr[m] <= x) lo = m + 1; else hi = m;
-  }
-  return lo;
-}
-function distanceBetween(a, b) {
-  if (!(a < b)) return 0;
-  const i = upperBoundIdx(VALID_SORTED, a);
-  const j = lowerBoundIdx(VALID_SORTED, b);
-  return Math.max(0, j - i) + 1;
-}
-function pluralWords(n) {
-  return n === 1 ? "1 palavra" : `${n.toLocaleString("pt-BR")} palavras`;
-}
-
-function todayKey() {
-  // Anchor the daily puzzle to Brasília time (UTC-3, no DST) so every device
-  // generates the same date key for the same UTC instant.
-  const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
-  const d = new Date(Date.now() - BRT_OFFSET_MS);
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
-}
-function formatDate(key) {
-  const [y, m, d] = key.split("-");
-  return `${d}/${m}/${y}`;
-}
-function seededRng(seed) {
-  let h = 1779033703 ^ seed.length;
-  for (let i = 0; i < seed.length; i++) {
-    h = Math.imul(h ^ seed.charCodeAt(i), 3432918353);
-    h = (h << 13) | (h >>> 19);
-  }
-  let a = h >>> 0;
-  return function () {
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 function pickTarget(seed) {
   const rng = seed ? seededRng(seed) : Math.random;
   return ANSWERS[Math.floor(rng() * ANSWERS.length)];
@@ -280,21 +216,10 @@ export function initClassic({ onBack } = {}) {
     const next = HINT_TIPS[state.tipsRevealed.length];
     if (!next) { hintBtn.setAttribute("aria-disabled", "true"); hintBtn.classList.remove("ready"); hintBtn.title = "Sem mais dicas"; return; }
     const range = distanceBetween(state.currentLower, state.currentUpper);
-    const start = state.tipStartRange ?? range;
-    const rangeOk = range <= next.rangeMax;
-    // Log-scale progress: linear plateaus at 95%+ when start >> rangeMax.
-    let rangeProgress;
-    if (rangeOk || start <= next.rangeMax) {
-      rangeProgress = 1;
-    } else {
-      const denom = Math.log(start / next.rangeMax);
-      rangeProgress = denom > 0
-        ? Math.max(0, Math.min(1, Math.log(start / range) / denom))
-        : 1;
-    }
-    const idle = Date.now() - state.lastGuessAt;
-    const idleProgress = Math.max(0, Math.min(1, idle / next.idleMs));
-    const ready = rangeOk && idleProgress >= 1;
+    const { rangeOk, rangeProgress, idleProgress, ready, remainSec } = computeHintState({
+      range, start: state.tipStartRange ?? range, rangeMax: next.rangeMax,
+      idleMs: next.idleMs, lastGuessAt: state.lastGuessAt,
+    });
     hintBtn.setAttribute("aria-disabled", String(!ready));
     hintBtn.classList.toggle("ready", ready);
     if (!ready) {
@@ -306,7 +231,6 @@ export function initClassic({ onBack } = {}) {
         hintBtn.style.setProperty("--tip-ring-color", "var(--warn)");
       }
     }
-    const remainSec = Math.max(0, Math.ceil((next.idleMs - idle) / 1000));
     const reasons = [];
     if (!rangeOk) reasons.push(`alcance ${range} (precisa ≤${next.rangeMax})`);
     if (idleProgress < 1) reasons.push(`aguarde ${remainSec}s`);
@@ -314,12 +238,12 @@ export function initClassic({ onBack } = {}) {
   }
 
   function loadDaily(dateKey) {
-    try { return JSON.parse(localStorage.getItem(STORAGE_PREFIX + dateKey) || "null"); } catch { return null; }
+    return readJSON(STORAGE_PREFIX + dateKey);
   }
   function saveDaily() {
     if (state.mode !== "daily") return;
     const payload = { dateKey: state.dateKey, target: state.target, guesses: state.guesses, done: state.done, won: state.won, tipsRevealed: state.tipsRevealed, tipStartRange: state.tipStartRange };
-    try { localStorage.setItem(STORAGE_PREFIX + state.dateKey, JSON.stringify(payload)); } catch {}
+    writeJSON(STORAGE_PREFIX + state.dateKey, payload);
   }
 
   function submitGuess(raw) {
@@ -422,18 +346,9 @@ export function initClassic({ onBack } = {}) {
   }
 
   async function share() {
-    const text = buildShareText();
-    if (isMobileDevice() && navigator.share) {
-      try { await navigator.share({ text }); return; }
-      catch (err) {
-        if (err && err.name === "AbortError") return; // user cancelled
-      }
-    }
-    if (await copyToClipboard(text)) {
-      setMessage("Resultado copiado!", "success");
-    } else {
-      setMessage("Não foi possível copiar o resultado", "error");
-    }
+    const result = await shareOrCopy(buildShareText());
+    if (result === "copied") setMessage("Resultado copiado!", "success");
+    else if (result === "failed") setMessage("Não foi possível copiar o resultado", "error");
   }
 
   form.addEventListener("submit", (e) => { e.preventDefault(); submitGuess(input.value); });

@@ -42,3 +42,15 @@ export async function copyToClipboard(text) {
     return false;
   }
 }
+
+// Share via the Web Share API on mobile, otherwise copy to clipboard.
+// Returns "shared" | "cancelled" | "copied" | "failed" so callers can message.
+export async function shareOrCopy(text) {
+  if (isMobileDevice() && navigator.share) {
+    try { await navigator.share({ text }); return "shared"; }
+    catch (err) {
+      if (err && err.name === "AbortError") return "cancelled";
+    }
+  }
+  return (await copyToClipboard(text)) ? "copied" : "failed";
+}
