@@ -6,17 +6,17 @@ Versão em português brasileiro do [Betweenle](https://betweenle.com/), com doi
 
 Ao abrir o jogo, um menu deixa escolher entre:
 
-- **Clássico** — adivinhe a palavra secreta de 5 letras que está alfabeticamente *entre* dois limites. A cada tentativa, o intervalo se estreita. 15 tentativas.
-  - *Palavra do dia*: a mesma palavra para todo mundo, baseada na data.
-  - *Aleatório*: jogue quantas vezes quiser.
+- **Clássico** — adivinhe a palavra secreta de 5 letras que está alfabeticamente _entre_ dois limites. A cada tentativa, o intervalo se estreita. 15 tentativas.
+  - _Palavra do dia_: a mesma palavra para todo mundo, baseada na data.
+  - _Aleatório_: jogue quantas vezes quiser.
 - **Palavras Cruzadas** — várias palavras secretas (5 por padrão) montadas como num crossword, todas interligadas. À esquerda fica o tabuleiro; à direita, uma lista alfabética dos palpites, mostrando quantas secretas ainda restam acima/abaixo de cada um e a distância em palavras do dicionário até a secreta mais próxima em cada direção. Acertar uma secreta a revela no tabuleiro e a remove da lista. Palpites em faixas já descartadas (fora dos limites ou em gaps com zero secretas) são bloqueados. 50 tentativas.
-  - *Cruzadas do dia* e *Aleatório*, mesma lógica do clássico.
+  - _Cruzadas do dia_ e _Aleatório_, mesma lógica do clássico.
 
 Acentos são ignorados em qualquer modo; use apenas `a`–`z`.
 
 ### Gerador de cruzadas
 
-As cruzadas são geradas em tempo real a partir de `ANSWERS`, com seed determinística por data no modo diário. O algoritmo é greedy + backtracking: coloca a primeira palavra, depois tenta encaixar cada palavra seguinte cruzando alguma já posicionada num letra compatível, rejeitando posições que criariam adjacências indesejadas. A partir da 4ª palavra o gerador *prefere* posições que formem laços (a palavra cruza duas já posicionadas), caindo de volta para cruzamentos simples quando não há opção de laço. Constantes em `crossword.js`: `NUM_SECRETS`, `MAX_GUESSES`, `GEN_MAX_ATTEMPTS`.
+As cruzadas são geradas em tempo real a partir de `ANSWERS`, com seed determinística por data no modo diário. O algoritmo é greedy + backtracking: coloca a primeira palavra, depois tenta encaixar cada palavra seguinte cruzando alguma já posicionada num letra compatível, rejeitando posições que criariam adjacências indesejadas. A partir da 4ª palavra o gerador _prefere_ posições que formem laços (a palavra cruza duas já posicionadas), caindo de volta para cruzamentos simples quando não há opção de laço. Constantes em `crossword.js`: `NUM_SECRETS`, `MAX_GUESSES`, `GEN_MAX_ATTEMPTS`.
 
 ### Compartilhar
 
@@ -66,7 +66,7 @@ Passos para a opção 2:
    ```
 
 3. No GitHub, vá em **Settings → Pages**:
-   - **Source**: *Deploy from a branch*
+   - **Source**: _Deploy from a branch_
    - **Branch**: `main` / `/ (root)`
    - Salve.
 4. Em ~1 minuto, o site aparece em `https://<seu-usuário>.github.io/entrelinhas/`.

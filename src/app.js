@@ -25,7 +25,9 @@ const views = {
 
 function showView(name) {
   for (const [k, el] of Object.entries(views)) el.hidden = k !== name;
-  try { history.replaceState({ view: name }, "", `#${name}`); } catch {}
+  try {
+    history.replaceState({ view: name }, "", `#${name}`);
+  } catch {}
 }
 
 const classic = initClassic({ onBack: () => showView("menu") });
@@ -35,10 +37,19 @@ const crossword = initCrossword({ onBack: () => showView("menu") });
 document.querySelectorAll("[data-mode]").forEach((btn) => {
   btn.addEventListener("click", () => {
     const mode = btn.getAttribute("data-mode");
-    if (mode === "classic-daily")        { showView("classic");   classic.start("daily"); }
-    else if (mode === "classic-random")  { showView("classic");   classic.start("random"); }
-    else if (mode === "crossword-daily") { showView("crossword"); crossword.start("daily"); }
-    else if (mode === "crossword-random"){ showView("crossword"); crossword.start("random"); }
+    if (mode === "classic-daily") {
+      showView("classic");
+      classic.start("daily");
+    } else if (mode === "classic-random") {
+      showView("classic");
+      classic.start("random");
+    } else if (mode === "crossword-daily") {
+      showView("crossword");
+      crossword.start("daily");
+    } else if (mode === "crossword-random") {
+      showView("crossword");
+      crossword.start("random");
+    }
   });
 });
 
@@ -76,7 +87,8 @@ function openPastDays(mode) {
     console.error("past-days dialog elements missing");
     return;
   }
-  pastTitle.textContent = mode === "crossword" ? "Cruzadas — dias anteriores" : "Clássico — dias anteriores";
+  pastTitle.textContent =
+    mode === "crossword" ? "Cruzadas — dias anteriores" : "Clássico — dias anteriores";
   pastGrid.innerHTML = "";
   const today = todayKey();
   const keys = listDateKeys(DAILY_EPOCH, today);
@@ -93,8 +105,13 @@ function openPastDays(mode) {
     btn.title = key + (key === today ? " (hoje)" : "");
     btn.addEventListener("click", () => {
       pastDialog.close();
-      if (mode === "crossword") { showView("crossword"); crossword.start("daily", key); }
-      else { showView("classic"); classic.start("daily", key); }
+      if (mode === "crossword") {
+        showView("crossword");
+        crossword.start("daily", key);
+      } else {
+        showView("classic");
+        classic.start("daily", key);
+      }
     });
     pastGrid.appendChild(btn);
   }
@@ -111,9 +128,13 @@ document.addEventListener("click", (e) => {
 
 // Initial view: respect hash, else menu
 const initial = (location.hash || "").replace("#", "");
-if (initial === "classic") { showView("classic"); classic.start("daily"); }
-else if (initial === "crossword") { showView("crossword"); crossword.start("daily"); }
-else showView("menu");
+if (initial === "classic") {
+  showView("classic");
+  classic.start("daily");
+} else if (initial === "crossword") {
+  showView("crossword");
+  crossword.start("daily");
+} else showView("menu");
 
 // Register the service worker for offline play (no-op when unsupported).
 if ("serviceWorker" in navigator) {

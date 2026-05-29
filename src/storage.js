@@ -2,11 +2,17 @@
 // disabled/full storage (private mode, quota) never throws.
 
 export function readJSON(key) {
-  try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; }
+  try {
+    return JSON.parse(localStorage.getItem(key) || "null");
+  } catch {
+    return null;
+  }
 }
 
 export function writeJSON(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
 }
 
 // One-time migration of a legacy single-slot key into a per-date entry.

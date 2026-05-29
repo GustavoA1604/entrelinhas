@@ -83,8 +83,12 @@ test("generation is deterministic for a given seed", () => {
 });
 
 test("different daily seeds yield different puzzles", () => {
-  const a = generateCrossword("crossword:2026-05-29").placed.map((p) => p.word).join(",");
-  const b = generateCrossword("crossword:2026-05-30").placed.map((p) => p.word).join(",");
+  const a = generateCrossword("crossword:2026-05-29")
+    .placed.map((p) => p.word)
+    .join(",");
+  const b = generateCrossword("crossword:2026-05-30")
+    .placed.map((p) => p.word)
+    .join(",");
   assert.notEqual(a, b);
 });
 
@@ -92,6 +96,9 @@ test("generation succeeds across many seeds (no null / crash)", () => {
   for (let d = 1; d <= 60; d++) {
     const seed = `crossword:2026-06-${String(d).padStart(2, "0")}`;
     const r = generateCrossword(seed);
-    assert.ok(r && Array.isArray(r.placed) && r.placed.length === NUM_SECRETS, `failed for ${seed}`);
+    assert.ok(
+      r && Array.isArray(r.placed) && r.placed.length === NUM_SECRETS,
+      `failed for ${seed}`,
+    );
   }
 });

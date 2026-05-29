@@ -2,15 +2,21 @@ import { ANSWERS } from "./data/answers.js";
 import { VALID } from "./data/valid.js";
 import { showToast } from "./toast.js";
 import { shareOrCopy } from "./share-helpers.js";
-import { SENTINEL_LOW, SENTINEL_HIGH, normalize, distanceBetween, pluralWords } from "./dictionary.js";
+import {
+  SENTINEL_LOW,
+  SENTINEL_HIGH,
+  normalize,
+  distanceBetween,
+  pluralWords,
+} from "./dictionary.js";
 import { todayKey, formatDate, seededRng } from "./daily.js";
 import { readJSON, writeJSON, migrateLegacyDaily } from "./storage.js";
 import { computeHintState } from "./hint.js";
 
 const MAX_GUESSES = 15;
 const HINT_TIPS = [
-  { id: "last",       rangeMax: 100, idleMs: 10_000 },
-  { id: "secondLast", rangeMax: 15,  idleMs: 30_000 },
+  { id: "last", rangeMax: 100, idleMs: 10_000 },
+  { id: "secondLast", rangeMax: 15, idleMs: 30_000 },
 ];
 const STORAGE_PREFIX = "entrelinhas:daily:";
 export const CLASSIC_STORAGE_PREFIX = STORAGE_PREFIX;
@@ -63,7 +69,8 @@ export function initClassic({ onBack } = {}) {
   };
 
   function recomputeBounds() {
-    let lo = SENTINEL_LOW, up = SENTINEL_HIGH;
+    let lo = SENTINEL_LOW,
+      up = SENTINEL_HIGH;
     for (const g of state.guesses) {
       if (g.side === "lower" && g.word > lo) lo = g.word;
       else if (g.side === "upper" && g.word < up) up = g.word;
@@ -170,12 +177,13 @@ export function initClassic({ onBack } = {}) {
         state.done = !!saved.done;
         state.won = !!saved.won;
         state.tipsRevealed = Array.isArray(saved.tipsRevealed)
-          ? saved.tipsRevealed.map((t) => typeof t === "string" ? { id: t, afterGuess: 0 } : t)
+          ? saved.tipsRevealed.map((t) => (typeof t === "string" ? { id: t, afterGuess: 0 } : t))
           : [];
         recomputeBounds();
-        state.tipStartRange = typeof saved.tipStartRange === "number"
-          ? saved.tipStartRange
-          : distanceBetween(state.currentLower, state.currentUpper);
+        state.tipStartRange =
+          typeof saved.tipStartRange === "number"
+            ? saved.tipStartRange
+            : distanceBetween(state.currentLower, state.currentUpper);
       }
     } else {
       state.dateKey = null;
@@ -195,7 +203,7 @@ export function initClassic({ onBack } = {}) {
   }
 
   function tipText(id) {
-    if (id === "last")       return `Dica: a palavra termina com "${state.target[4]}".`;
+    if (id === "last") return `Dica: a palavra termina com "${state.target[4]}".`;
     if (id === "secondLast") return `Dica: a penúltima letra é "${state.target[3]}".`;
     return "Dica.";
   }
@@ -212,13 +220,26 @@ export function initClassic({ onBack } = {}) {
   function updateHintButton() {
     hintBtn.style.setProperty("--tip-progress", "0");
     hintBtn.style.setProperty("--tip-ring-color", "var(--muted)");
-    if (state.done) { hintBtn.setAttribute("aria-disabled", "true"); hintBtn.classList.remove("ready"); hintBtn.title = "Dica"; return; }
+    if (state.done) {
+      hintBtn.setAttribute("aria-disabled", "true");
+      hintBtn.classList.remove("ready");
+      hintBtn.title = "Dica";
+      return;
+    }
     const next = HINT_TIPS[state.tipsRevealed.length];
-    if (!next) { hintBtn.setAttribute("aria-disabled", "true"); hintBtn.classList.remove("ready"); hintBtn.title = "Sem mais dicas"; return; }
+    if (!next) {
+      hintBtn.setAttribute("aria-disabled", "true");
+      hintBtn.classList.remove("ready");
+      hintBtn.title = "Sem mais dicas";
+      return;
+    }
     const range = distanceBetween(state.currentLower, state.currentUpper);
     const { rangeOk, rangeProgress, idleProgress, ready, remainSec } = computeHintState({
-      range, start: state.tipStartRange ?? range, rangeMax: next.rangeMax,
-      idleMs: next.idleMs, lastGuessAt: state.lastGuessAt,
+      range,
+      start: state.tipStartRange ?? range,
+      rangeMax: next.rangeMax,
+      idleMs: next.idleMs,
+      lastGuessAt: state.lastGuessAt,
     });
     hintBtn.setAttribute("aria-disabled", String(!ready));
     hintBtn.classList.toggle("ready", ready);
@@ -242,31 +263,57 @@ export function initClassic({ onBack } = {}) {
   }
   function saveDaily() {
     if (state.mode !== "daily") return;
-    const payload = { dateKey: state.dateKey, target: state.target, guesses: state.guesses, done: state.done, won: state.won, tipsRevealed: state.tipsRevealed, tipStartRange: state.tipStartRange };
+    const payload = {
+      dateKey: state.dateKey,
+      target: state.target,
+      guesses: state.guesses,
+      done: state.done,
+      won: state.won,
+      tipsRevealed: state.tipsRevealed,
+      tipStartRange: state.tipStartRange,
+    };
     writeJSON(STORAGE_PREFIX + state.dateKey, payload);
   }
 
   function submitGuess(raw) {
     if (state.done) return;
     const word = normalize(raw);
-    const fail = (text) => { setMessage(text, "error"); input.focus({ preventScroll: true }); };
-    if (!/^[a-z]{5}$/.test(word)) { fail("Use 5 letras (a–z)."); return; }
-    if (!VALID.has(word)) { fail(`"${word}" não está no dicionário.`); return; }
-    if (state.guesses.some((g) => g.word === word)) { fail("Você já tentou essa palavra."); return; }
+    const fail = (text) => {
+      setMessage(text, "error");
+      input.focus({ preventScroll: true });
+    };
+    if (!/^[a-z]{5}$/.test(word)) {
+      fail("Use 5 letras (a–z).");
+      return;
+    }
+    if (!VALID.has(word)) {
+      fail(`"${word}" não está no dicionário.`);
+      return;
+    }
+    if (state.guesses.some((g) => g.word === word)) {
+      fail("Você já tentou essa palavra.");
+      return;
+    }
     if (word !== state.target && !(word > state.currentLower && word < state.currentUpper)) {
       fail(`"${word}" está fora dos limites atuais.`);
       return;
     }
 
     let side;
-    if (word === state.target) { side = "hit"; state.done = true; state.won = true; }
-    else if (word > state.target) side = "upper";
+    if (word === state.target) {
+      side = "hit";
+      state.done = true;
+      state.won = true;
+    } else if (word > state.target) side = "upper";
     else side = "lower";
     state.guesses.push({ word, side });
     state.lastGuessAt = Date.now();
     recomputeBounds();
 
-    if (!state.won && state.guesses.length >= MAX_GUESSES) { state.done = true; state.won = false; }
+    if (!state.won && state.guesses.length >= MAX_GUESSES) {
+      state.done = true;
+      state.won = false;
+    }
 
     input.value = "";
     setMessage("");
@@ -285,11 +332,12 @@ export function initClassic({ onBack } = {}) {
   function buildSummaryLines({ includeWords } = { includeWords: true }) {
     const n = state.guesses.length;
     const lines = [];
-    let lo = SENTINEL_LOW, hi = SENTINEL_HIGH;
+    let lo = SENTINEL_LOW,
+      hi = SENTINEL_HIGH;
     const fmt = (x) => x.toLocaleString("pt-BR");
     const tipLine = (id) => {
       if (!includeWords) return "💡 Dica usada";
-      if (id === "last")       return `💡 Dica: última letra "${state.target[4]}"`;
+      if (id === "last") return `💡 Dica: última letra "${state.target[4]}"`;
       if (id === "secondLast") return `💡 Dica: penúltima letra "${state.target[3]}"`;
       return "💡 Dica";
     };
@@ -321,7 +369,9 @@ export function initClassic({ onBack } = {}) {
   }
 
   function modeLabel() {
-    return state.mode === "daily" ? `Palavra do dia (${formatDate(state.dateKey)})` : "Modo aleatório";
+    return state.mode === "daily"
+      ? `Palavra do dia (${formatDate(state.dateKey)})`
+      : "Modo aleatório";
   }
 
   function showEndDialog() {
@@ -339,7 +389,10 @@ export function initClassic({ onBack } = {}) {
   }
 
   function buildShareText() {
-    const header = state.mode === "daily" ? `Entrelinhas ${formatDate(state.dateKey)}` : "Entrelinhas (aleatório)";
+    const header =
+      state.mode === "daily"
+        ? `Entrelinhas ${formatDate(state.dateKey)}`
+        : "Entrelinhas (aleatório)";
     const score = state.won ? `${state.guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
     const footer = "Jogue também em https://gustavoa1604.github.io/entrelinhas/";
     return `${header} ${score}\n${buildSummaryLines({ includeWords: false }).join("\n")}\n\n${footer}`;
@@ -351,9 +404,15 @@ export function initClassic({ onBack } = {}) {
     else if (result === "failed") setMessage("Não foi possível copiar o resultado", "error");
   }
 
-  form.addEventListener("submit", (e) => { e.preventDefault(); submitGuess(input.value); });
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    submitGuess(input.value);
+  });
   const guessBtn = $("guess-btn");
-  guessBtn.addEventListener("click", (e) => { e.preventDefault(); if (!input.disabled) form.requestSubmit(); });
+  guessBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!input.disabled) form.requestSubmit();
+  });
   input.addEventListener("input", () => {
     const cleaned = normalize(input.value).slice(0, 5);
     if (cleaned !== input.value) input.value = cleaned;
@@ -362,12 +421,18 @@ export function initClassic({ onBack } = {}) {
   hintBtn.addEventListener("click", () => {
     if (state.done) return;
     const next = HINT_TIPS[state.tipsRevealed.length];
-    if (!next) { showToast("Sem mais dicas disponíveis", "warn"); return; }
+    if (!next) {
+      showToast("Sem mais dicas disponíveis", "warn");
+      return;
+    }
     const range = distanceBetween(state.currentLower, state.currentUpper);
     const idle = Date.now() - state.lastGuessAt;
     if (range > next.rangeMax) {
       const need = range - next.rangeMax;
-      showToast(`Reduza o intervalo em mais ${need} palavra${need === 1 ? "" : "s"} para liberar a dica`, "warn");
+      showToast(
+        `Reduza o intervalo em mais ${need} palavra${need === 1 ? "" : "s"} para liberar a dica`,
+        "warn",
+      );
       return;
     }
     if (idle < next.idleMs) {
@@ -382,16 +447,34 @@ export function initClassic({ onBack } = {}) {
     saveDaily();
   });
   const classicView = $("classic-view");
-  setInterval(() => { if (!document.hidden && classicView && !classicView.hidden) updateHintButton(); }, 500);
-  helpBtn.addEventListener("click", () => { if (typeof helpDialog.showModal === "function") helpDialog.showModal(); });
+  setInterval(() => {
+    if (!document.hidden && classicView && !classicView.hidden) updateHintButton();
+  }, 500);
+  helpBtn.addEventListener("click", () => {
+    if (typeof helpDialog.showModal === "function") helpDialog.showModal();
+  });
   shareBtn.addEventListener("click", share);
-  playAgainBtn.addEventListener("click", () => { endDialog.close(); startGame("random"); });
-  endMenuBtn.addEventListener("click", () => { endDialog.close(); onBack && onBack(); });
+  playAgainBtn.addEventListener("click", () => {
+    endDialog.close();
+    startGame("random");
+  });
+  endMenuBtn.addEventListener("click", () => {
+    endDialog.close();
+    onBack && onBack();
+  });
 
   function maybeRolloverDaily() {
-    if (state.mode === "daily" && !state.isHistorical && state.dateKey && state.dateKey !== todayKey()) startGame("daily");
+    if (
+      state.mode === "daily" &&
+      !state.isHistorical &&
+      state.dateKey &&
+      state.dateKey !== todayKey()
+    )
+      startGame("daily");
   }
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) maybeRolloverDaily(); });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) maybeRolloverDaily();
+  });
   window.addEventListener("focus", maybeRolloverDaily);
 
   return {
@@ -399,7 +482,11 @@ export function initClassic({ onBack } = {}) {
       startGame(mode, dateKey);
       input.focus({ preventScroll: true });
     },
-    focus() { input.focus({ preventScroll: true }); },
-    shouldConfirmExit() { return state.mode === "random" && !state.done && state.guesses.length > 0; },
+    focus() {
+      input.focus({ preventScroll: true });
+    },
+    shouldConfirmExit() {
+      return state.mode === "random" && !state.done && state.guesses.length > 0;
+    },
   };
 }

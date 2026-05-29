@@ -7,7 +7,9 @@ export function isMobileDevice() {
   const ua = navigator.userAgent || "";
   if (/Mobi|Android|iPhone|iPad|iPod/i.test(ua)) return true;
   if (navigator.maxTouchPoints > 0 && typeof window !== "undefined" && window.matchMedia) {
-    try { if (window.matchMedia("(pointer: coarse)").matches) return true; } catch {}
+    try {
+      if (window.matchMedia("(pointer: coarse)").matches) return true;
+    } catch {}
   }
   return false;
 }
@@ -16,7 +18,10 @@ export function isMobileDevice() {
 // Returns true on success, false on failure.
 export async function copyToClipboard(text) {
   if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-    try { await navigator.clipboard.writeText(text); return true; } catch {}
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {}
   }
   try {
     const ta = document.createElement("textarea");
@@ -35,7 +40,9 @@ export async function copyToClipboard(text) {
     const ok = document.execCommand && document.execCommand("copy");
     document.body.removeChild(ta);
     if (previouslyFocused && typeof previouslyFocused.focus === "function") {
-      try { previouslyFocused.focus(); } catch {}
+      try {
+        previouslyFocused.focus();
+      } catch {}
     }
     return !!ok;
   } catch {
@@ -47,8 +54,10 @@ export async function copyToClipboard(text) {
 // Returns "shared" | "cancelled" | "copied" | "failed" so callers can message.
 export async function shareOrCopy(text) {
   if (isMobileDevice() && navigator.share) {
-    try { await navigator.share({ text }); return "shared"; }
-    catch (err) {
+    try {
+      await navigator.share({ text });
+      return "shared";
+    } catch (err) {
       if (err && err.name === "AbortError") return "cancelled";
     }
   }

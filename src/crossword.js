@@ -2,7 +2,13 @@ import { ANSWERS } from "./data/answers.js";
 import { VALID } from "./data/valid.js";
 import { showToast } from "./toast.js";
 import { shareOrCopy } from "./share-helpers.js";
-import { SENTINEL_LOW, SENTINEL_HIGH, normalize, distanceBetween, pluralWords } from "./dictionary.js";
+import {
+  SENTINEL_LOW,
+  SENTINEL_HIGH,
+  normalize,
+  distanceBetween,
+  pluralWords,
+} from "./dictionary.js";
 import { todayKey, formatDate, seededRng } from "./daily.js";
 import { readJSON, writeJSON, migrateLegacyDaily } from "./storage.js";
 import { computeHintState } from "./hint.js";
@@ -20,7 +26,7 @@ const GEN_MAX_ATTEMPTS = 300;
 const HINT_TIPS = [
   { rangeMax: 500, idleMs: 10_000 },
   { rangeMax: 100, idleMs: 20_000 },
-  { rangeMax: 30,  idleMs: 30_000 },
+  { rangeMax: 30, idleMs: 30_000 },
 ];
 
 const ANSWER_POOL = ANSWERS.filter((w) => w.length === 5);
@@ -201,13 +207,13 @@ export function initCrossword({ onBack } = {}) {
     dateKey: null,
     isHistorical: false,
     placed: [],
-    secrets: [],            // lowercase, in placement order
-    secretsSorted: [],      // sorted alphabetic copy
+    secrets: [], // lowercase, in placement order
+    secretsSorted: [], // sorted alphabetic copy
     solvedSet: new Set(),
-    guesses: [],            // { word, isSecret }
+    guesses: [], // { word, isSecret }
     done: false,
     won: false,
-    tipsRevealed: [],       // [{ pos: [ox, oy], afterGuess: N }]
+    tipsRevealed: [], // [{ pos: [ox, oy], afterGuess: N }]
     lastGuessAt: Date.now(),
     selectingTip: false,
     tipStartRange: null,
@@ -238,7 +244,8 @@ export function initCrossword({ onBack } = {}) {
     const gapCounts = [];
     const gapSecrets = []; // sorted secrets per gap
     for (let i = 0; i < bounds.length - 1; i++) {
-      const lo = bounds[i], hi = bounds[i + 1];
+      const lo = bounds[i],
+        hi = bounds[i + 1];
       const inGap = unsolvedSecrets.filter((s) => s > lo && s < hi);
       gapCounts.push(inGap.length);
       gapSecrets.push(inGap);
@@ -303,14 +310,22 @@ export function initCrossword({ onBack } = {}) {
     return new Set(state.tipsRevealed.map((t) => `${t.pos[0]},${t.pos[1]}`));
   }
   function totalDistance() {
-    const nonSecret = state.guesses.filter((g) => !g.isSecret).map((g) => g.word).sort();
+    const nonSecret = state.guesses
+      .filter((g) => !g.isSecret)
+      .map((g) => g.word)
+      .sort();
     const bounds = [SENTINEL_LOW, ...nonSecret, SENTINEL_HIGH];
     let total = 0;
     for (const secret of state.secretsSorted) {
       if (state.solvedSet.has(secret)) continue;
-      let lo = SENTINEL_LOW, hi = SENTINEL_HIGH;
+      let lo = SENTINEL_LOW,
+        hi = SENTINEL_HIGH;
       for (let i = 0; i < bounds.length - 1; i++) {
-        if (secret > bounds[i] && secret < bounds[i + 1]) { lo = bounds[i]; hi = bounds[i + 1]; break; }
+        if (secret > bounds[i] && secret < bounds[i + 1]) {
+          lo = bounds[i];
+          hi = bounds[i + 1];
+          break;
+        }
       }
       total += distanceBetween(lo, secret) + distanceBetween(secret, hi);
     }
@@ -321,7 +336,10 @@ export function initCrossword({ onBack } = {}) {
   function renderGrid() {
     grid.innerHTML = "";
     if (state.placed.length === 0) return;
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    let minX = Infinity,
+      maxX = -Infinity,
+      minY = Infinity,
+      maxY = -Infinity;
     for (const p of state.placed) {
       for (let i = 0; i < p.word.length; i++) {
         const cx = p.dir === "H" ? p.x + i : p.x;
@@ -348,7 +366,8 @@ export function initCrossword({ onBack } = {}) {
         const cur = cells[cy][cx] || { letter: p.word[i], solved: false, ox: ocx, oy: ocy };
         cur.letter = p.word[i];
         cur.solved = cur.solved || isSolved;
-        cur.ox = ocx; cur.oy = ocy;
+        cur.ox = ocx;
+        cur.oy = ocy;
         cells[cy][cx] = cur;
       }
     }
@@ -370,7 +389,7 @@ export function initCrossword({ onBack } = {}) {
           div.className = cls.join(" ");
           div.dataset.ox = String(c.ox);
           div.dataset.oy = String(c.oy);
-          div.textContent = (c.solved || isRevealed) ? c.letter.toUpperCase() : "";
+          div.textContent = c.solved || isRevealed ? c.letter.toUpperCase() : "";
         }
         grid.appendChild(div);
       }
@@ -385,7 +404,11 @@ export function initCrossword({ onBack } = {}) {
       out = out.slice(1);
     }
     // 3. Drop sentinel-high if not preceded by a group.
-    if (out.length >= 2 && out[out.length - 1].kind === "sentinel-high" && out[out.length - 2].kind !== "group") {
+    if (
+      out.length >= 2 &&
+      out[out.length - 1].kind === "sentinel-high" &&
+      out[out.length - 2].kind !== "group"
+    ) {
       out = out.slice(0, -1);
     }
     return out;
@@ -409,8 +432,10 @@ export function initCrossword({ onBack } = {}) {
       } else if (r.kind === "guess") {
         el.className = "cw-row cw-guess";
         const tags = [];
-        if (r.upDist != null) tags.push(`<span class="tag tag-up">↑ ${pluralWords(r.upDist)}</span>`);
-        if (r.downDist != null) tags.push(`<span class="tag tag-down">↓ ${pluralWords(r.downDist)}</span>`);
+        if (r.upDist != null)
+          tags.push(`<span class="tag tag-up">↑ ${pluralWords(r.upDist)}</span>`);
+        if (r.downDist != null)
+          tags.push(`<span class="tag tag-down">↓ ${pluralWords(r.downDist)}</span>`);
         el.innerHTML = `<span class="word">${r.word}</span><span class="tags">${tags.join("")}</span>`;
       }
       list.appendChild(el);
@@ -449,23 +474,37 @@ export function initCrossword({ onBack } = {}) {
   function isHintReady() {
     const next = HINT_TIPS[state.tipsRevealed.length];
     if (!next) return false;
-    return totalDistance() <= next.rangeMax && (Date.now() - state.lastGuessAt) >= next.idleMs;
+    return totalDistance() <= next.rangeMax && Date.now() - state.lastGuessAt >= next.idleMs;
   }
   function updateHintButton() {
     hintBtn.style.setProperty("--tip-progress", "0");
     hintBtn.style.setProperty("--tip-ring-color", "var(--muted)");
-    if (state.done) { hintBtn.setAttribute("aria-disabled", "true"); hintBtn.classList.remove("ready"); hintBtn.title = "Dica"; return; }
+    if (state.done) {
+      hintBtn.setAttribute("aria-disabled", "true");
+      hintBtn.classList.remove("ready");
+      hintBtn.title = "Dica";
+      return;
+    }
     if (state.selectingTip) {
-      hintBtn.setAttribute("aria-disabled", "false"); hintBtn.classList.remove("ready");
+      hintBtn.setAttribute("aria-disabled", "false");
+      hintBtn.classList.remove("ready");
       hintBtn.title = "Toque em uma letra para revelar (Esc para cancelar)";
       return;
     }
     const next = HINT_TIPS[state.tipsRevealed.length];
-    if (!next) { hintBtn.setAttribute("aria-disabled", "true"); hintBtn.classList.remove("ready"); hintBtn.title = "Sem mais dicas"; return; }
+    if (!next) {
+      hintBtn.setAttribute("aria-disabled", "true");
+      hintBtn.classList.remove("ready");
+      hintBtn.title = "Sem mais dicas";
+      return;
+    }
     const range = totalDistance();
     const { rangeOk, rangeProgress, idleProgress, ready, remainSec } = computeHintState({
-      range, start: state.tipStartRange ?? range, rangeMax: next.rangeMax,
-      idleMs: next.idleMs, lastGuessAt: state.lastGuessAt,
+      range,
+      start: state.tipStartRange ?? range,
+      rangeMax: next.rangeMax,
+      idleMs: next.idleMs,
+      lastGuessAt: state.lastGuessAt,
     });
     hintBtn.setAttribute("aria-disabled", String(!ready));
     hintBtn.classList.toggle("ready", ready);
@@ -509,13 +548,21 @@ export function initCrossword({ onBack } = {}) {
   function submitGuess(raw) {
     if (state.done) return;
     const word = normalize(raw);
-    const fail = (text) => { setMessage(text, "error"); input.focus({ preventScroll: true }); };
-    if (!/^[a-z]{5}$/.test(word)) { fail("Use 5 letras (a–z)."); return; }
+    const fail = (text) => {
+      setMessage(text, "error");
+      input.focus({ preventScroll: true });
+    };
+    if (!/^[a-z]{5}$/.test(word)) {
+      fail("Use 5 letras (a–z).");
+      return;
+    }
     if (!VALID.has(word) && !state.secrets.includes(word)) {
-      fail(`"${word}" não está no dicionário.`); return;
+      fail(`"${word}" não está no dicionário.`);
+      return;
     }
     if (state.guesses.some((g) => g.word === word)) {
-      fail("Você já tentou essa palavra."); return;
+      fail("Você já tentou essa palavra.");
+      return;
     }
     const isSecret = state.secrets.includes(word) && !state.solvedSet.has(word);
 
@@ -532,9 +579,11 @@ export function initCrossword({ onBack } = {}) {
     if (isSecret) state.solvedSet.add(word);
 
     if (state.solvedSet.size === state.secrets.length) {
-      state.done = true; state.won = true;
+      state.done = true;
+      state.won = true;
     } else if (state.guesses.length >= MAX_GUESSES) {
-      state.done = true; state.won = false;
+      state.done = true;
+      state.won = false;
     }
 
     input.value = "";
@@ -588,7 +637,12 @@ export function initCrossword({ onBack } = {}) {
       state.dateKey = customDateKey || today;
       state.isHistorical = state.dateKey !== today;
       const saved = loadDaily(state.dateKey);
-      if (saved && saved.dateKey === state.dateKey && Array.isArray(saved.secrets) && saved.secrets.length === NUM_SECRETS) {
+      if (
+        saved &&
+        saved.dateKey === state.dateKey &&
+        Array.isArray(saved.secrets) &&
+        saved.secrets.length === NUM_SECRETS
+      ) {
         state.placed = saved.placed;
         state.secrets = saved.secrets;
         state.secretsSorted = [...state.secrets].sort();
@@ -667,7 +721,10 @@ export function initCrossword({ onBack } = {}) {
   }
 
   function buildShareText() {
-    const header = state.mode === "daily" ? `Entrelinhas Cruzadas ${formatDate(state.dateKey)}` : "Entrelinhas Cruzadas (aleatório)";
+    const header =
+      state.mode === "daily"
+        ? `Entrelinhas Cruzadas ${formatDate(state.dateKey)}`
+        : "Entrelinhas Cruzadas (aleatório)";
     const score = `${state.solvedSet.size}/${state.secrets.length} em ${state.guesses.length}/${MAX_GUESSES}`;
     const events = buildEventLines().join("\n");
     const footer = "Jogue também em https://gustavoa1604.github.io/entrelinhas/";
@@ -680,8 +737,14 @@ export function initCrossword({ onBack } = {}) {
   }
 
   // --- Wiring ---
-  form.addEventListener("submit", (e) => { e.preventDefault(); submitGuess(input.value); });
-  guessBtn.addEventListener("click", (e) => { e.preventDefault(); if (!input.disabled) form.requestSubmit(); });
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    submitGuess(input.value);
+  });
+  guessBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!input.disabled) form.requestSubmit();
+  });
   input.addEventListener("input", () => {
     const cleaned = normalize(input.value).slice(0, 5);
     if (cleaned !== input.value) input.value = cleaned;
@@ -689,10 +752,16 @@ export function initCrossword({ onBack } = {}) {
   });
   hintBtn.addEventListener("click", () => {
     if (state.done) return;
-    if (state.selectingTip) { stopSelecting(); return; }
+    if (state.selectingTip) {
+      stopSelecting();
+      return;
+    }
     if (!isHintReady()) {
       const next = HINT_TIPS[state.tipsRevealed.length];
-      if (!next) { showToast("Sem mais dicas disponíveis", "warn"); return; }
+      if (!next) {
+        showToast("Sem mais dicas disponíveis", "warn");
+        return;
+      }
       const range = totalDistance();
       const idle = Date.now() - state.lastGuessAt;
       if (range > next.rangeMax) {
@@ -710,7 +779,8 @@ export function initCrossword({ onBack } = {}) {
     const cell = e.target.closest(".cw-cell");
     if (!cell || cell.classList.contains("cw-empty")) return;
     if (cell.classList.contains("cw-solved") || cell.classList.contains("cw-revealed")) return;
-    const ox = Number(cell.dataset.ox), oy = Number(cell.dataset.oy);
+    const ox = Number(cell.dataset.ox),
+      oy = Number(cell.dataset.oy);
     if (!Number.isFinite(ox) || !Number.isFinite(oy)) return;
     revealCellAt(ox, oy);
   });
@@ -718,21 +788,46 @@ export function initCrossword({ onBack } = {}) {
     if (e.key === "Escape" && state.selectingTip) stopSelecting();
   });
   const crosswordView = $("crossword-view");
-  setInterval(() => { if (!document.hidden && crosswordView && !crosswordView.hidden) updateHintButton(); }, 500);
-  helpBtn.addEventListener("click", () => { if (typeof helpDialog.showModal === "function") helpDialog.showModal(); });
+  setInterval(() => {
+    if (!document.hidden && crosswordView && !crosswordView.hidden) updateHintButton();
+  }, 500);
+  helpBtn.addEventListener("click", () => {
+    if (typeof helpDialog.showModal === "function") helpDialog.showModal();
+  });
   shareBtn.addEventListener("click", share);
-  playAgainBtn.addEventListener("click", () => { endDialog.close(); startGame("random"); });
-  endMenuBtn.addEventListener("click", () => { endDialog.close(); onBack && onBack(); });
+  playAgainBtn.addEventListener("click", () => {
+    endDialog.close();
+    startGame("random");
+  });
+  endMenuBtn.addEventListener("click", () => {
+    endDialog.close();
+    onBack && onBack();
+  });
 
   function maybeRolloverDaily() {
-    if (state.mode === "daily" && !state.isHistorical && state.dateKey && state.dateKey !== todayKey()) startGame("daily");
+    if (
+      state.mode === "daily" &&
+      !state.isHistorical &&
+      state.dateKey &&
+      state.dateKey !== todayKey()
+    )
+      startGame("daily");
   }
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) maybeRolloverDaily(); });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) maybeRolloverDaily();
+  });
   window.addEventListener("focus", maybeRolloverDaily);
 
   return {
-    start(mode, dateKey) { startGame(mode, dateKey); input.focus({ preventScroll: true }); },
-    focus() { input.focus({ preventScroll: true }); },
-    shouldConfirmExit() { return state.mode === "random" && !state.done && state.guesses.length > 0; },
+    start(mode, dateKey) {
+      startGame(mode, dateKey);
+      input.focus({ preventScroll: true });
+    },
+    focus() {
+      input.focus({ preventScroll: true });
+    },
+    shouldConfirmExit() {
+      return state.mode === "random" && !state.done && state.guesses.length > 0;
+    },
   };
 }
