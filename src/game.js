@@ -365,16 +365,21 @@ export function initClassic({ onBack, onRoute } = {}) {
       const g = state.guesses[i];
       if (g.side === "lower" && g.word > lo) lo = g.word;
       else if (g.side === "upper" && g.word < hi) hi = g.word;
-      const lowerDist = distanceBetween(lo, state.target);
-      const upperDist = distanceBetween(state.target, hi);
+      // A side that hasn't been narrowed yet is still the sentinel; show it as
+      // unknown ("?????" / "?") to match the in-game board, instead of leaking
+      // the AAAAA / ZZZZZ limits.
+      const loWord = lo === SENTINEL_LOW ? "?????" : lo;
+      const hiWord = hi === SENTINEL_HIGH ? "?????" : hi;
+      const loDist = lo === SENTINEL_LOW ? "?" : fmt(distanceBetween(lo, state.target));
+      const hiDist = hi === SENTINEL_HIGH ? "?" : fmt(distanceBetween(state.target, hi));
       const arrow = g.side === "hit" ? "✅" : g.side === "lower" ? "🔼" : "🔽";
       const word = includeWords ? ` ${g.word}` : "";
       if (g.side === "hit") {
         lines.push(`${arrow}${word}  Sucesso em ${n} tentativa${n === 1 ? "" : "s"}`);
       } else if (includeWords) {
-        lines.push(`${arrow} ${lo} (${fmt(lowerDist)}) — (${fmt(upperDist)}) ${hi}`);
+        lines.push(`${arrow} ${loWord} (${loDist}) — (${hiDist}) ${hiWord}`);
       } else {
-        lines.push(`${arrow}${word}  ${fmt(lowerDist)} - ${fmt(upperDist)}`);
+        lines.push(`${arrow}${word}  ${loDist} - ${hiDist}`);
       }
       emitTipsAfter(i + 1);
     }
