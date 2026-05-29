@@ -2,16 +2,11 @@ import { ANSWERS } from "./data/answers.js";
 import { VALID } from "./data/valid.js";
 import { showToast } from "./toast.js";
 import { shareOrCopy } from "./share-helpers.js";
-import {
-  SENTINEL_LOW,
-  SENTINEL_HIGH,
-  normalize,
-  distanceBetween,
-  pluralWords,
-} from "./dictionary.js";
+import { SENTINEL_LOW, SENTINEL_HIGH, normalize, pluralWords } from "./dictionary.js";
 import { todayKey, formatDate, seededRng } from "./daily.js";
 import { readJSON, writeJSON, migrateLegacyDaily } from "./storage.js";
 import { computeHintState } from "./hint.js";
+import { computeCrosswordList, pruneRows, totalUnsolvedDistance } from "./crossword-list.js";
 
 // === Tunables ===
 export const NUM_SECRETS = 5;
@@ -224,66 +219,13 @@ export function initCrossword({ onBack } = {}) {
     else showToast("");
   }
 
-  // --- List computation ---
-  // Returns an array of rows representing the side list:
-  //   { kind: 'sentinel-low' | 'sentinel-high' }
-  //   { kind: 'group', count }
-  //   { kind: 'guess', word, upDist, downDist }  // *Dist undefined when not shown
-  // Also returns liveGaps: array of [loExcl, hiExcl] where unsolved secrets > 0.
+  // --- List computation (see crossword-list.js for the pure logic) ---
   function computeList() {
-    const unsolvedSecrets = state.secretsSorted.filter((w) => !state.solvedSet.has(w));
-    const nonSecret = state.guesses
-      .filter((g) => !g.isSecret)
-      .map((g) => g.word)
-      .sort();
-
-    // Boundaries between which we count secrets: [AAAAA, g1, g2, ..., ZZZZZ]
-    const bounds = [SENTINEL_LOW, ...nonSecret, SENTINEL_HIGH];
-
-    // For each gap i (between bounds[i] and bounds[i+1]) count unsolved secrets strictly inside.
-    const gapCounts = [];
-    const gapSecrets = []; // sorted secrets per gap
-    for (let i = 0; i < bounds.length - 1; i++) {
-      const lo = bounds[i],
-        hi = bounds[i + 1];
-      const inGap = unsolvedSecrets.filter((s) => s > lo && s < hi);
-      gapCounts.push(inGap.length);
-      gapSecrets.push(inGap);
-    }
-
-    // Build display rows + liveGaps
-    const rows = [];
-    const liveGaps = [];
-
-    rows.push({ kind: "sentinel-low" });
-    for (let i = 0; i < bounds.length - 1; i++) {
-      const count = gapCounts[i];
-      if (count > 0) rows.push({ kind: "group", count });
-      if (count > 0) liveGaps.push([bounds[i], bounds[i + 1]]);
-
-      // If there's a guess at bounds[i+1] (not the final sentinel), render it
-      if (i + 1 < bounds.length - 1) {
-        const word = bounds[i + 1];
-        // count above (between previous boundary and this guess) = gapCounts[i]
-        // count below (between this guess and next boundary) = gapCounts[i+1]
-        const upGroup = gapSecrets[i];
-        const downGroup = gapSecrets[i + 1];
-        let upDist, downDist;
-        if (upGroup.length > 0) {
-          // nearest secret above (largest in upGroup) is the last sorted element
-          const nearestAbove = upGroup[upGroup.length - 1];
-          upDist = distanceBetween(nearestAbove, word);
-        }
-        if (downGroup.length > 0) {
-          const nearestBelow = downGroup[0];
-          downDist = distanceBetween(word, nearestBelow);
-        }
-        rows.push({ kind: "guess", word, upDist, downDist });
-      }
-    }
-    rows.push({ kind: "sentinel-high" });
-
-    return { rows, liveGaps, unsolvedCount: unsolvedSecrets.length };
+    return computeCrosswordList({
+      secretsSorted: state.secretsSorted,
+      solvedSet: state.solvedSet,
+      guessWords: state.guesses.map((g) => g.word),
+    });
   }
 
   // --- Validity for input prefix highlighting and submission ---
@@ -310,26 +252,11 @@ export function initCrossword({ onBack } = {}) {
     return new Set(state.tipsRevealed.map((t) => `${t.pos[0]},${t.pos[1]}`));
   }
   function totalDistance() {
-    const nonSecret = state.guesses
-      .filter((g) => !g.isSecret)
-      .map((g) => g.word)
-      .sort();
-    const bounds = [SENTINEL_LOW, ...nonSecret, SENTINEL_HIGH];
-    let total = 0;
-    for (const secret of state.secretsSorted) {
-      if (state.solvedSet.has(secret)) continue;
-      let lo = SENTINEL_LOW,
-        hi = SENTINEL_HIGH;
-      for (let i = 0; i < bounds.length - 1; i++) {
-        if (secret > bounds[i] && secret < bounds[i + 1]) {
-          lo = bounds[i];
-          hi = bounds[i + 1];
-          break;
-        }
-      }
-      total += distanceBetween(lo, secret) + distanceBetween(secret, hi);
-    }
-    return total;
+    return totalUnsolvedDistance({
+      secretsSorted: state.secretsSorted,
+      solvedSet: state.solvedSet,
+      guessWords: state.guesses.map((g) => g.word),
+    });
   }
 
   // --- Rendering ---
@@ -396,24 +323,6 @@ export function initCrossword({ onBack } = {}) {
     }
   }
 
-  function pruneRows(rows) {
-    // 1. Drop guess rows that contribute no info (no unsolved secrets on either side).
-    let out = rows.filter((r) => !(r.kind === "guess" && r.upDist == null && r.downDist == null));
-    // 2. Drop sentinel-low if not followed by a group (no secrets above the first remaining guess).
-    if (out.length >= 2 && out[0].kind === "sentinel-low" && out[1].kind !== "group") {
-      out = out.slice(1);
-    }
-    // 3. Drop sentinel-high if not preceded by a group.
-    if (
-      out.length >= 2 &&
-      out[out.length - 1].kind === "sentinel-high" &&
-      out[out.length - 2].kind !== "group"
-    ) {
-      out = out.slice(0, -1);
-    }
-    return out;
-  }
-
   function renderList() {
     const { rows } = computeList();
     const visible = pruneRows(rows);
@@ -430,13 +339,14 @@ export function initCrossword({ onBack } = {}) {
         el.className = "cw-row cw-group";
         el.innerHTML = `<span class="word">?????</span><span class="tag">${pluralSecretas(r.count)}</span>`;
       } else if (r.kind === "guess") {
-        el.className = "cw-row cw-guess";
+        el.className = "cw-row cw-guess" + (r.solved ? " cw-guess-solved" : "");
         const tags = [];
         if (r.upDist != null)
           tags.push(`<span class="tag tag-up">↑ ${pluralWords(r.upDist)}</span>`);
         if (r.downDist != null)
           tags.push(`<span class="tag tag-down">↓ ${pluralWords(r.downDist)}</span>`);
-        el.innerHTML = `<span class="word">${r.word}</span><span class="tags">${tags.join("")}</span>`;
+        const mark = r.solved ? '<span class="cw-guess-check" aria-label="acertada">✓</span> ' : "";
+        el.innerHTML = `<span class="word">${mark}${r.word}</span><span class="tags">${tags.join("")}</span>`;
       }
       list.appendChild(el);
     }

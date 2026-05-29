@@ -9,7 +9,7 @@ Ao abrir o jogo, um menu deixa escolher entre:
 - **Clássico** — adivinhe a palavra secreta de 5 letras que está alfabeticamente _entre_ dois limites. A cada tentativa, o intervalo se estreita. 15 tentativas.
   - _Palavra do dia_: a mesma palavra para todo mundo, baseada na data.
   - _Aleatório_: jogue quantas vezes quiser.
-- **Palavras Cruzadas** — várias palavras secretas (5 por padrão) montadas como num crossword, todas interligadas. À esquerda fica o tabuleiro; à direita, uma lista alfabética dos palpites, mostrando quantas secretas ainda restam acima/abaixo de cada um e a distância em palavras do dicionário até a secreta mais próxima em cada direção. Acertar uma secreta a revela no tabuleiro e a remove da lista. Palpites em faixas já descartadas (fora dos limites ou em gaps com zero secretas) são bloqueados. 50 tentativas.
+- **Palavras Cruzadas** — várias palavras secretas (5 por padrão) montadas como num crossword, todas interligadas. À esquerda fica o tabuleiro; à direita, uma lista alfabética dos palpites, mostrando quantas secretas ainda restam acima/abaixo de cada um e a distância em palavras do dicionário até a secreta mais próxima em cada direção. Acertar uma secreta a revela no tabuleiro e a mantém na lista (marcada com ✓) como um novo limite, estreitando o intervalo das secretas restantes. Palpites em faixas já descartadas (fora dos limites ou em gaps com zero secretas) são bloqueados. 50 tentativas.
   - _Cruzadas do dia_ e _Aleatório_, mesma lógica do clássico.
 
 Acentos são ignorados em qualquer modo; use apenas `a`–`z`.
