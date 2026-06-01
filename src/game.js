@@ -514,8 +514,24 @@ export function initClassic({ onBack, onRoute } = {}) {
     focus() {
       input.focus({ preventScroll: true });
     },
-    shouldConfirmExit() {
-      return state.mode === "random" && !state.done && state.guesses.length > 0;
+    // Details for the leave-confirmation dialog when a game is in progress
+    // (started, not finished); null when leaving needs no confirmation.
+    exitInfo() {
+      const started = state.guesses.length > 0 || state.tipsRevealed.length > 0;
+      if (state.done || !started) return null;
+      if (state.mode === "random") {
+        return {
+          message:
+            "O progresso desta partida aleatória será perdido. Para jogar este mesmo jogo de novo, copie o link (ou anote o código):",
+          code: state.seed,
+          link: buildShareUrl(descriptor()),
+        };
+      }
+      const how =
+        state.dateKey === todayKey()
+          ? 'Seu progresso fica salvo. Para retomar, escolha "Do dia" no Clássico.'
+          : `Seu progresso fica salvo. Para retomar, use 📅 no Clássico e escolha a data ${formatDate(state.dateKey)}.`;
+      return { message: how, code: null, link: null };
     },
   };
 }

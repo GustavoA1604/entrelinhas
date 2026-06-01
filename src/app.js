@@ -3,6 +3,7 @@ import { initCrossword, CROSSWORD_STORAGE_PREFIX } from "./crossword.js";
 import { todayKey, listDateKeys } from "./daily.js";
 import { readJSON } from "./storage.js";
 import { parseHash, buildHash, extractSeed } from "./routes.js";
+import { copyToClipboard } from "./share-helpers.js";
 
 // Keep --app-height tracking the visible viewport (above the on-screen keyboard)
 // so game views can size to it. dvh alone isn't reliable on iOS Safari.
@@ -28,26 +29,63 @@ function showView(name) {
   for (const [k, el] of Object.entries(views)) el.hidden = k !== name;
 }
 
+// Which view is showing, and the URL of the active game (so we can restore it
+// when intercepting the OS/browser back button).
+let view = "menu";
+let activeGameUrl = null;
+// Set just before we deliberately pop our own history entry, so the popstate
+// handler knows the navigation is intentional rather than a user "back".
+let leavingIntentionally = false;
+
 // Reflect the active game in the URL hash so it can be copied/shared and
 // reopened to the exact same puzzle. Called by each game via onRoute.
 function setRoute(descriptor) {
   try {
     const url = descriptor ? "#" + buildHash(descriptor) : location.pathname + location.search;
-    history.replaceState({}, "", url);
+    activeGameUrl = descriptor ? url : null;
+    history.replaceState(history.state, "", url);
   } catch {}
 }
 
-function goMenu() {
+function showMenu() {
+  view = "menu";
   showView("menu");
   setRoute(null);
 }
 
-const classic = initClassic({ onBack: goMenu, onRoute: setRoute });
-const crossword = initCrossword({ onBack: goMenu, onRoute: setRoute });
+const classic = initClassic({ onBack: leaveToMenu, onRoute: setRoute });
+const crossword = initCrossword({ onBack: leaveToMenu, onRoute: setRoute });
 
+function activeGame() {
+  if (!views.classic.hidden) return classic;
+  if (!views.crossword.hidden) return crossword;
+  return null;
+}
+
+// Open a game from the menu (menu buttons, dialogs, or a deep link). Pushes a
+// dedicated history entry so the OS/browser back button returns to the menu
+// (and we can intercept it to confirm leaving an in-progress game).
 function startGame(mode, variant, param) {
+  if (view === "menu") history.pushState({ inGame: true }, "", location.href);
+  view = mode;
   showView(mode);
   (mode === "crossword" ? crossword : classic).start(variant, param);
+}
+
+// Leave the active game for the menu, popping our pushed history entry so the
+// back stack stays clean. The popstate handler then shows the menu.
+function leaveToMenu() {
+  leavingIntentionally = true;
+  history.back();
+}
+
+// User asked to go back (Menu button or the title/logo). Confirm first if the
+// game is in progress, otherwise leave immediately.
+function requestBack() {
+  const game = activeGame();
+  const info = game && game.exitInfo && game.exitInfo();
+  if (info) openExitDialog(info);
+  else leaveToMenu();
 }
 
 // Menu buttons (the main half of each split button)
@@ -58,20 +96,87 @@ document.querySelectorAll("[data-mode]").forEach((btn) => {
   });
 });
 
-// Back buttons inside each game view
-function activeGame() {
-  if (!views.classic.hidden) return classic;
-  if (!views.crossword.hidden) return crossword;
-  return null;
-}
-document.querySelectorAll("[data-back]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const game = activeGame();
-    if (game && game.shouldConfirmExit && game.shouldConfirmExit()) {
-      if (!confirm("Você tem certeza? O progresso desta partida aleatória será perdido.")) return;
+// Back triggers inside each game view (the Menu button and the title/logo).
+document.querySelectorAll("[data-back]").forEach((el) => {
+  el.addEventListener("click", requestBack);
+  // The clickable title (an <h1 role="button">) also needs keyboard activation.
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      requestBack();
     }
-    goMenu();
   });
+});
+
+// === Leave-confirmation dialog ===
+const exitDialog = document.getElementById("exit-dialog");
+const exitMessage = document.getElementById("exit-message");
+const exitCodeRow = document.getElementById("exit-code-row");
+const exitCode = document.getElementById("exit-code");
+const exitCopyLink = document.getElementById("exit-copy-link");
+const exitConfirm = document.getElementById("exit-confirm");
+const exitCancel = document.getElementById("exit-cancel");
+let pendingExit = null;
+let copyResetTimer = null;
+
+function openExitDialog(info) {
+  pendingExit = info;
+  exitMessage.textContent = info.message;
+  if (info.code) {
+    exitCode.textContent = info.code;
+    exitCodeRow.hidden = false;
+  } else {
+    exitCodeRow.hidden = true;
+  }
+  if (typeof exitDialog.showModal === "function") exitDialog.showModal();
+  else exitDialog.setAttribute("open", "");
+}
+
+// Feedback shown on the button itself: a modal dialog sits in the top layer,
+// above the toast, so we can't rely on toasts here.
+async function copyWithFeedback(btn, text) {
+  if (!text) return;
+  const ok = await copyToClipboard(text);
+  btn.textContent = ok ? "Copiado!" : "Não foi possível copiar";
+  clearTimeout(copyResetTimer);
+  copyResetTimer = setTimeout(() => {
+    btn.textContent = btn.dataset.label;
+  }, 1600);
+}
+
+if (exitCopyLink)
+  exitCopyLink.addEventListener("click", () =>
+    copyWithFeedback(exitCopyLink, pendingExit && pendingExit.link),
+  );
+if (exitCode)
+  exitCode.addEventListener("click", () =>
+    copyWithFeedback(exitCopyLink, pendingExit && pendingExit.link),
+  );
+if (exitConfirm)
+  exitConfirm.addEventListener("click", () => {
+    exitDialog.close();
+    leaveToMenu();
+  });
+if (exitCancel) exitCancel.addEventListener("click", () => exitDialog.close());
+
+// Intercept the OS/browser back button.
+window.addEventListener("popstate", () => {
+  if (leavingIntentionally) {
+    leavingIntentionally = false;
+    showMenu();
+    return;
+  }
+  if (view === "menu") return; // from the menu, let back leave the app
+  const game = activeGame();
+  const info = game && game.exitInfo && game.exitInfo();
+  if (!info) {
+    showMenu();
+    return;
+  }
+  // In-progress game: re-push the entry that was just popped so we stay put,
+  // then ask for confirmation.
+  history.pushState({ inGame: true }, "", activeGameUrl || location.href);
+  openExitDialog(info);
 });
 
 // === Past-days dialog ===
@@ -182,8 +287,11 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("[data-seed-cancel]") && seedDialog) seedDialog.close();
 });
 
-// Initial view: respect the hash deep-link, else show the menu.
+// Initial view: respect the hash deep-link, else show the menu. Anchor a clean
+// menu entry at the base of the history stack first, so back/Menu (even on a
+// deep link) lands on the menu instead of leaving the app.
 const route = parseHash(location.hash);
+history.replaceState({ inGame: false }, "", location.pathname + location.search);
 if (route) startGame(route.mode, route.variant, route.param || undefined);
 else showView("menu");
 

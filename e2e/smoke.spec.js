@@ -45,7 +45,7 @@ test("crossword: board renders a grid of cells", async ({ page }) => {
 test("navigation: back button returns to the menu", async ({ page }) => {
   await page.locator('[data-mode="classic-daily"]').click();
   await expect(page.locator("#classic-view")).toBeVisible();
-  await page.locator("#classic-view [data-back]").click();
+  await page.locator("#classic-view button[data-back]").click();
   await expect(page.locator("#menu-view")).toBeVisible();
 });
 
@@ -97,4 +97,50 @@ test("seed dialog shows an error for invalid input and stays open", async ({ pag
   // typing again clears the error
   await page.locator("#seed-dialog-input").fill("ok123");
   await expect(page.locator("#seed-error")).toBeHidden();
+});
+
+test("clicking the title returns to the menu", async ({ page }) => {
+  await page.locator('[data-mode="classic-daily"]').click();
+  await expect(page.locator("#classic-view")).toBeVisible();
+  // Not started yet, so no confirmation — the title is a back trigger.
+  await page.locator("#classic-view h1.topbar-home").click();
+  await expect(page.locator("#menu-view")).toBeVisible();
+});
+
+test("leaving an in-progress random game asks to confirm and shows the code", async ({ page }) => {
+  await page.locator('[data-mode="classic-random"]').click();
+  await expect(page.locator("#classic-view")).toBeVisible();
+  const seed = (await page.locator("#puzzle-date").textContent()).replace("código: ", "").trim();
+
+  await page.locator("#guess-input").fill("porta");
+  await page.locator("#guess-input").press("Enter");
+
+  await page.locator("#classic-view button[data-back]").click();
+  await expect(page.locator("#exit-dialog")).toBeVisible();
+  await expect(page.locator("#exit-code")).toHaveText(seed);
+
+  // Cancelling keeps us in the game.
+  await page.locator("#exit-cancel").click();
+  await expect(page.locator("#exit-dialog")).toBeHidden();
+  await expect(page.locator("#classic-view")).toBeVisible();
+
+  // Confirming leaves to the menu.
+  await page.locator("#classic-view button[data-back]").click();
+  await page.locator("#exit-confirm").click();
+  await expect(page.locator("#menu-view")).toBeVisible();
+});
+
+test("OS back button on an in-progress game triggers the confirm dialog", async ({ page }) => {
+  await page.locator('[data-mode="classic-random"]').click();
+  await expect(page.locator("#classic-view")).toBeVisible();
+  await page.locator("#guess-input").fill("porta");
+  await page.locator("#guess-input").press("Enter");
+
+  // Browser/OS back: intercepted, stays in the game, prompts.
+  await page.goBack();
+  await expect(page.locator("#exit-dialog")).toBeVisible();
+  await expect(page.locator("#classic-view")).toBeVisible();
+
+  await page.locator("#exit-confirm").click();
+  await expect(page.locator("#menu-view")).toBeVisible();
 });

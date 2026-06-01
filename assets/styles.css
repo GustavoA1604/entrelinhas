@@ -79,6 +79,17 @@ body {
   width: auto;
   display: block;
 }
+.topbar h1.topbar-home {
+  cursor: pointer;
+}
+.topbar h1.topbar-home:hover {
+  filter: brightness(1.15);
+}
+.topbar h1.topbar-home:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--radius);
+}
 
 .actions {
   display: flex;
@@ -525,6 +536,32 @@ footer {
   margin: -4px 0 12px;
   color: var(--bad);
   font-size: 0.88rem;
+}
+
+/* Leave-confirmation dialog */
+.exit-message {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+.exit-code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 4px;
+}
+.exit-code {
+  flex: 1 1 140px;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 1rem;
+  cursor: pointer;
+  user-select: all;
+  overflow-wrap: anywhere;
 }
 
 /* ====================== Hints ====================== */

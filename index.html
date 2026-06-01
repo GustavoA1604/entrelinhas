@@ -155,7 +155,9 @@
     <!-- ====================== CLASSIC VIEW ====================== -->
     <section id="classic-view" class="view" hidden>
       <header class="topbar">
-        <h1><img src="./assets/logo-without-bg.png" alt="" class="logo" />Entrelinhas</h1>
+        <h1 class="topbar-home" data-back role="button" tabindex="0" title="Voltar ao menu">
+          <img src="./assets/logo-without-bg.png" alt="" class="logo" />Entrelinhas
+        </h1>
         <div class="actions">
           <button class="ghost" data-back title="Voltar ao menu">Menu</button>
           <button
@@ -272,7 +274,9 @@
     <!-- ====================== CROSSWORD VIEW ====================== -->
     <section id="crossword-view" class="view" hidden>
       <header class="topbar">
-        <h1><img src="./assets/logo-without-bg.png" alt="" class="logo" />Entrelinhas Cruzadas</h1>
+        <h1 class="topbar-home" data-back role="button" tabindex="0" title="Voltar ao menu">
+          <img src="./assets/logo-without-bg.png" alt="" class="logo" />Entrelinhas Cruzadas
+        </h1>
         <div class="actions">
           <button class="ghost" data-back title="Voltar ao menu">Menu</button>
           <button
@@ -390,6 +394,22 @@
         </div>
       </dialog>
     </section>
+
+    <!-- Shared leave-confirmation dialog (in-progress games) -->
+    <dialog id="exit-dialog">
+      <h2 id="exit-title">Sair do jogo?</h2>
+      <p id="exit-message" class="exit-message"></p>
+      <div id="exit-code-row" class="exit-code-row" hidden>
+        <code id="exit-code" class="exit-code" title="Toque para copiar o link"></code>
+        <button type="button" id="exit-copy-link" class="ghost" data-label="Copiar link">
+          Copiar link
+        </button>
+      </div>
+      <div class="end-actions">
+        <button type="button" id="exit-confirm">Sair</button>
+        <button type="button" class="ghost" id="exit-cancel">Continuar jogando</button>
+      </div>
+    </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
