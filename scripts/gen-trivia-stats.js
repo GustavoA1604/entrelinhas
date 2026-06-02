@@ -61,7 +61,7 @@ const up = (l) => l.toUpperCase();
 const highlights = [
   `A letra mais comum em Entrelinhas é o '${up(mostCommon)}': aparece ${vezes(occ[mostCommon])}.`,
   `A letra menos comum que ainda aparece em Entrelinhas é o '${up(rarest)}', com ${vezes(occ[rarest])}.`,
-  `Mais palavras começam com '${up(topStart)}' do que com qualquer outra letra.`,
+  `Mais palavras começam com '${up(topStart)}' do que com qualquer outra letra em Entrelinhas.`,
   `${pct(starts[topStart], N)}% das palavras cadastradas em Entrelinhas começam com '${up(topStart)}'.`,
   `${pct(ends[topEnd], N)}% das palavras cadastradas em Entrelinhas terminam em '${up(topEnd)}'.`,
   `${pct(doubleWord, N)}% das palavras cadastradas em Entrelinhas têm uma letra dobrada, como em 'saara'.`,

@@ -3,7 +3,7 @@
 export const STATS_HIGHLIGHTS = [
   "A letra mais comum em Entrelinhas é o 'A': aparece 4.327 vezes.",
   "A letra menos comum que ainda aparece em Entrelinhas é o 'W', com uma única vez.",
-  "Mais palavras começam com 'A' do que com qualquer outra letra.",
+  "Mais palavras começam com 'A' do que com qualquer outra letra em Entrelinhas.",
   "10,5% das palavras cadastradas em Entrelinhas começam com 'A'.",
   "20,7% das palavras cadastradas em Entrelinhas terminam em 'A'.",
   "3,2% das palavras cadastradas em Entrelinhas têm uma letra dobrada, como em 'saara'.",
