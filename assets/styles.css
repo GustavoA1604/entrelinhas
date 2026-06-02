@@ -469,6 +469,39 @@ footer {
   margin-top: 4px;
 }
 
+/* "Você sabia?" trivia row, just below the game selection. Kept understated:
+   plain text, no card, so it doesn't compete with the game buttons. */
+.trivia {
+  position: relative;
+  margin: 4px 2px 0;
+  padding-right: 24px; /* reserve room for the pinned refresh button */
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.trivia[hidden] {
+  display: none;
+}
+.trivia-refresh {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1.4;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.trivia-refresh:hover {
+  opacity: 1;
+}
+.trivia-label {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
 /* Footer (menu only): attribution + version. */
 .menu-footer {
   display: flex;

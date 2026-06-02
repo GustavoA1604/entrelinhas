@@ -22,7 +22,7 @@ test("classic: a valid guess is accepted and consumes a turn", async ({ page }) 
   await page.locator("#guess-input").press("Enter");
 
   // Either the guess narrowed the range (14 left) or it happened to be the
-  // answer (game ends, still 14 used) — either way the counter moved.
+  // answer (game ends, still 14 used); either way the counter moved.
   await expect(page.locator("#guesses-left")).toHaveText("14");
 });
 
@@ -102,7 +102,7 @@ test("seed dialog shows an error for invalid input and stays open", async ({ pag
 test("clicking the title returns to the menu", async ({ page }) => {
   await page.locator('[data-mode="classic-daily"]').click();
   await expect(page.locator("#classic-view")).toBeVisible();
-  // Not started yet, so no confirmation — the title is a back trigger.
+  // Not started yet, so no confirmation: the title is a back trigger.
   await page.locator("#classic-view h1.topbar-home").click();
   await expect(page.locator("#menu-view")).toBeVisible();
 });

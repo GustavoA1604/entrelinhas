@@ -6,10 +6,10 @@ Versão em português brasileiro do [Betweenle](https://betweenle.com/), com doi
 
 Ao abrir o jogo, um menu deixa escolher entre:
 
-- **Clássico** — adivinhe a palavra secreta de 5 letras que está alfabeticamente _entre_ dois limites. A cada tentativa, o intervalo se estreita. 15 tentativas.
+- **Clássico**: adivinhe a palavra secreta de 5 letras que está alfabeticamente _entre_ dois limites. A cada tentativa, o intervalo se estreita. 15 tentativas.
   - _Palavra do dia_: a mesma palavra para todo mundo, baseada na data. O **📅** ao lado abre o seletor de dias anteriores.
   - _Aleatório_: jogue quantas vezes quiser. Cada partida tem um **código** mostrado no topo; o **🔗** ao lado abre um campo para colar o código (ou o link) de outra pessoa e jogar exatamente o mesmo jogo.
-- **Palavras Cruzadas** — várias palavras secretas (5 por padrão) montadas como num crossword, todas interligadas. À esquerda fica o tabuleiro; à direita, uma lista alfabética dos palpites, mostrando quantas secretas ainda restam acima/abaixo de cada um e a distância em palavras do dicionário até a secreta mais próxima em cada direção. Acertar uma secreta a revela no tabuleiro e a mantém na lista (marcada com ✓) como um novo limite, estreitando o intervalo das secretas restantes. Palpites em faixas já descartadas (fora dos limites ou em gaps com zero secretas) são bloqueados. 50 tentativas.
+- **Palavras Cruzadas**: várias palavras secretas (5 por padrão) montadas como num crossword, todas interligadas. À esquerda fica o tabuleiro; à direita, uma lista alfabética dos palpites, mostrando quantas secretas ainda restam acima/abaixo de cada um e a distância em palavras do dicionário até a secreta mais próxima em cada direção. Acertar uma secreta a revela no tabuleiro e a mantém na lista (marcada com ✓) como um novo limite, estreitando o intervalo das secretas restantes. Palpites em faixas já descartadas (fora dos limites ou em gaps com zero secretas) são bloqueados. 50 tentativas.
   - _Cruzadas do dia_ e _Aleatório_, mesma lógica do clássico.
 
 Acentos são ignorados em qualquer modo; use apenas `a`–`z`.
@@ -20,13 +20,13 @@ As cruzadas são geradas em tempo real a partir de `ANSWERS`, com seed determin�
 
 ### Compartilhar
 
-O botão "Compartilhar" copia ou envia (via Web Share API) o resultado em texto, sempre acompanhado de um **link que reabre exatamente aquele jogo** — a mesma data (diário) ou o mesmo código (aleatório). Tocar na data/código no topo da partida copia esse link diretamente.
+O botão "Compartilhar" copia ou envia (via Web Share API) o resultado em texto, sempre acompanhado de um **link que reabre exatamente aquele jogo**: a mesma data (diário) ou o mesmo código (aleatório). Tocar na data/código no topo da partida copia esse link diretamente.
 
 O link usa o hash da URL:
 
-- `#classic` / `#crossword` — diário de hoje;
-- `#classic/daily/2026-05-29` — diário de uma data específica;
-- `#classic/random/<código>` — partida aleatória reproduzível a partir do código.
+- `#classic` / `#crossword`: diário de hoje;
+- `#classic/daily/2026-05-29`: diário de uma data específica;
+- `#classic/random/<código>`: partida aleatória reproduzível a partir do código.
 
 Ao abrir um link assim, o jogo carrega direto na partida correspondente. A lógica de parsing/serialização vive em `routes.js`.
 

@@ -1,6 +1,6 @@
 // Pure logic for the crossword side list and hint distance.
 //
-// Every guessed word acts as an alphabetic delimiter — including solved secrets,
+// Every guessed word acts as an alphabetic delimiter, including solved secrets,
 // whose position is known once revealed. Unsolved secrets are then counted within
 // the gaps between consecutive delimiters, so solving a secret tightens the
 // interval(s) shown for the words that remain.
@@ -64,7 +64,7 @@ export function pruneRows(rows) {
   // 1. Drop delimiter rows with no unsolved secrets on either side.
   let out = rows.filter((r) => !(r.kind === "guess" && r.upDist == null && r.downDist == null));
   // With no remaining groups (e.g. the puzzle is complete) the sentinels are
-  // just empty bookends — show nothing rather than a stray AAAAA / ZZZZZ.
+  // just empty bookends: show nothing rather than a stray AAAAA / ZZZZZ.
   if (!out.some((r) => r.kind === "group")) return [];
   // 2. Drop sentinel-low if not followed by a group.
   if (out.length >= 2 && out[0].kind === "sentinel-low" && out[1].kind !== "group") {
@@ -82,7 +82,7 @@ export function pruneRows(rows) {
 }
 
 // Total dictionary distance from every unsolved secret to its enclosing
-// delimiters — the smaller it gets, the closer the player is. Used to gate hints.
+// delimiters: the smaller it gets, the closer the player is. Used to gate hints.
 export function totalUnsolvedDistance({ secretsSorted, solvedSet, guessWords }) {
   const bounds = buildBounds(guessWords);
   let total = 0;

@@ -18,8 +18,11 @@ const PRECACHE = [
   "./src/daily.js",
   "./src/storage.js",
   "./src/hint.js",
+  "./src/trivia.js",
   "./src/data/answers.js",
   "./src/data/valid.js",
+  "./src/data/trivia-curated.js",
+  "./src/data/trivia-stats.js",
 ];
 
 self.addEventListener("install", (event) => {

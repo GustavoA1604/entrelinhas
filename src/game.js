@@ -377,7 +377,7 @@ export function initClassic({ onBack, onRoute } = {}) {
       if (g.side === "hit") {
         lines.push(`${arrow}${word}  Sucesso em ${n} tentativa${n === 1 ? "" : "s"}`);
       } else if (includeWords) {
-        lines.push(`${arrow} ${loWord} (${loDist}) — (${hiDist}) ${hiWord}`);
+        lines.push(`${arrow} ${loWord} (${loDist}) - (${hiDist}) ${hiWord}`);
       } else {
         lines.push(`${arrow}${word}  ${loDist} - ${hiDist}`);
       }

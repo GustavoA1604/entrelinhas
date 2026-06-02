@@ -111,7 +111,7 @@ function findPlacements(word, placed, grid) {
   }
   return results;
 }
-// Weighted random pick — bias toward placements with more crossings (loops).
+// Weighted random pick: bias toward placements with more crossings (loops).
 function pickWeighted(placements, rng) {
   let total = 0;
   for (const p of placements) total += p.crossings * p.crossings;

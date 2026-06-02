@@ -5,6 +5,7 @@ import { readJSON } from "./storage.js";
 import { parseHash, buildHash, extractSeed } from "./routes.js";
 import { copyToClipboard } from "./share-helpers.js";
 import { showToast } from "./toast.js";
+import { pickTrivia } from "./trivia.js";
 
 // Keep --app-height tracking the visible viewport (above the on-screen keyboard)
 // so game views can size to it. dvh alone isn't reliable on iOS Safari.
@@ -24,6 +25,19 @@ if (window.visualViewport) {
 const APP_VERSION = "1.0.0";
 const versionEl = document.getElementById("app-version");
 if (versionEl) versionEl.textContent = "v" + APP_VERSION;
+
+// "Você sabia?" fact for the menu: one on load, plus a refresh button.
+const triviaEl = document.getElementById("trivia");
+const triviaTextEl = document.getElementById("trivia-text");
+const triviaRefreshEl = document.getElementById("trivia-refresh");
+if (triviaEl && triviaTextEl) {
+  triviaTextEl.textContent = pickTrivia();
+  triviaEl.hidden = false;
+  if (triviaRefreshEl)
+    triviaRefreshEl.addEventListener("click", () => {
+      triviaTextEl.textContent = pickTrivia();
+    });
+}
 
 const views = {
   menu: document.getElementById("menu-view"),
@@ -204,7 +218,7 @@ function openPastDays(mode) {
     return;
   }
   pastTitle.textContent =
-    mode === "crossword" ? "Cruzadas — dias anteriores" : "Clássico — dias anteriores";
+    mode === "crossword" ? "Cruzadas: dias anteriores" : "Clássico: dias anteriores";
   pastGrid.innerHTML = "";
   const today = todayKey();
   const keys = listDateKeys(DAILY_EPOCH, today);
