@@ -469,6 +469,29 @@ footer {
   margin-top: 4px;
 }
 
+/* Footer (menu only): attribution + version. */
+.menu-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.menu-footer a {
+  color: inherit;
+  text-decoration: underline;
+}
+.menu-footer a:hover {
+  color: var(--fg);
+}
+.menu-footer .dot {
+  opacity: 0.5;
+}
+
 /* Split button: a main action joined to an icon action. */
 .split-btn {
   display: flex;

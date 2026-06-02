@@ -1,9 +1,10 @@
 import { initClassic, CLASSIC_STORAGE_PREFIX, DAILY_EPOCH } from "./game.js";
 import { initCrossword, CROSSWORD_STORAGE_PREFIX } from "./crossword.js";
-import { todayKey, listDateKeys } from "./daily.js";
+import { todayKey, listDateKeys, formatDate } from "./daily.js";
 import { readJSON } from "./storage.js";
 import { parseHash, buildHash, extractSeed } from "./routes.js";
 import { copyToClipboard } from "./share-helpers.js";
+import { showToast } from "./toast.js";
 
 // Keep --app-height tracking the visible viewport (above the on-screen keyboard)
 // so game views can size to it. dvh alone isn't reliable on iOS Safari.
@@ -18,6 +19,11 @@ if (window.visualViewport) {
 } else {
   window.addEventListener("resize", updateAppHeight);
 }
+
+// Bump alongside package.json (and sw.js CACHE_VERSION) on each release.
+const APP_VERSION = "1.0.0";
+const versionEl = document.getElementById("app-version");
+if (versionEl) versionEl.textContent = "v" + APP_VERSION;
 
 const views = {
   menu: document.getElementById("menu-view"),
@@ -292,8 +298,16 @@ document.addEventListener("click", (e) => {
 // deep link) lands on the menu instead of leaving the app.
 const route = parseHash(location.hash);
 history.replaceState({ inGame: false }, "", location.pathname + location.search);
-if (route) startGame(route.mode, route.variant, route.param || undefined);
-else showView("menu");
+// Daily date keys are "YYYY-MM-DD", so a plain string compare orders them.
+// A hand-edited link pointing past today's puzzle stays on the menu with a note.
+if (route && route.variant === "daily" && route.param && route.param > todayKey()) {
+  showView("menu");
+  showToast(`Jogo do dia ${formatDate(route.param)} ainda não disponível.`, "error");
+} else if (route) {
+  startGame(route.mode, route.variant, route.param || undefined);
+} else {
+  showView("menu");
+}
 
 // Register the service worker for offline play (no-op when unsupported).
 if ("serviceWorker" in navigator) {
