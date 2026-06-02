@@ -21,6 +21,7 @@ export const WRITING_RULES = [
   "Entre vogais, o S costuma ter som de Z: 'casa', 'mesa'.",
   "'Trás' (advérbio de lugar) leva acento; 'traz' é do verbo trazer.",
   "Palavras terminadas em -ÃO fazem plural de várias formas: 'pão' vira 'pães', 'mão' vira 'mãos'.",
+  "A letra Q no portugues é sempre sucedida pela letra U.",
 ];
 
 // How Entrelinhas works (stable mechanics; numeric facts live in trivia-stats).
@@ -30,13 +31,13 @@ export const GAME_RULES = [
   "A palavra do dia é a mesma para todo mundo naquele dia. O mesmo se aplica para o jogo do modo cruzadas.",
   "No modo Clássico você tem 15 tentativas; nas Cruzadas, 50.",
   "A palavra secreta está sempre em ordem alfabética entre os seus dois limites.",
-  "Cada palpite aperta o intervalo: vem antes da secreta vira o limite de cima, depois, o de baixo.",
+  "Cada palpite diminiu o intervalo de possíveis respostas. Se ele vem antes da palavra secreta, vira o limite de cima; caso contrário, o limite de baixo.",
   "Quanto mais perto a sua palavra estiver da secreta, menos palavras restam entre elas.",
   "Palpites fora dos limites atuais não são aceitos, garantindo que você esteja sempre mais próximo da resposta.",
   "Usar dicas no modo clássico revela as últimas letras da palavra secreta pois são as letras mais difíceis de se ter certeza.",
   "Usar dicas no modo cruzadas permite que você selecione qual letra quer revelar de acordo com sua estratégia de jogo.",
   "Dicas só são disponibilizadas à medida que você chega mais próximo da resposta.",
-  "Dicas só são disponibilizadas se você está há alguns segundos sem conseguir fazer nenhuma tentativa",
+  "Dicas só são utilizáveis se você está há alguns segundos sem conseguir fazer nenhuma tentativa.",
   "Você pode jogar dias anteriores pelo ícone 📅 no menu.",
   "Você pode jogar o mesmo jogo aleatório de outras pessoas ao usar a mesmo código de geração de jogo.",
 ];
