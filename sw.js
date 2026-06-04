@@ -1,6 +1,6 @@
 // Service worker for offline play. Bump CACHE_VERSION on each deploy so clients
 // pick up new assets (the activate handler purges older caches).
-const CACHE_VERSION = "entrelinhas-v1";
+const CACHE_VERSION = "entrelinhas-v1.0.1";
 
 // App shell + game logic + word lists. Paths are relative to the SW scope.
 const PRECACHE = [

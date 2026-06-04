@@ -1,6 +1,6 @@
 {
   "name": "entrelinhas",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Versão em português brasileiro do Betweenle, com modo clássico e palavras cruzadas.",
   "type": "module",
   "private": true,
@@ -9,6 +9,7 @@
   "scripts": {
     "serve": "node scripts/serve.js 8000",
     "gen:trivia": "node scripts/gen-trivia-stats.js",
+    "bump:version": "node scripts/bump-version.js",
     "test": "node --test",
     "test:e2e": "playwright test",
     "lint": "eslint .",
