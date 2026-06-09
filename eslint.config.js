@@ -10,7 +10,8 @@ export default [
       "playwright-report/**",
       "test-results/**",
       "local/**",
-      "_raw_*",
+      // The dictionary submodule is a separate repo with its own tooling.
+      "wordlists/**",
     ],
   },
   js.configs.recommended,
