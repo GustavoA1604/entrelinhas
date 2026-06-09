@@ -421,6 +421,129 @@ footer {
   }
 }
 
+/* ====================== How to play (inline, collapsible) ====================== */
+.howto {
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.howto-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: transparent;
+  color: var(--fg);
+  border: none;
+  border-radius: 0;
+  padding: 12px 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: left;
+}
+.howto-header:hover {
+  filter: none;
+  background: var(--bg);
+}
+.howto-chevron {
+  color: var(--muted);
+  transition: transform 160ms ease;
+}
+.howto.collapsed .howto-chevron {
+  transform: rotate(-90deg);
+}
+.howto-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 2px 14px 16px;
+}
+.howto.collapsed .howto-body {
+  display: none;
+}
+/* Thin separator between the game and the in-game "Como jogar?" section. The
+   surrounding flex gap supplies the spacing above and below the line. */
+.howto-divider {
+  width: 100%;
+  height: 0;
+  margin: 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+.howto code {
+  background: var(--bg);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--mono);
+}
+.howto-lead,
+.howto-note,
+.howto-caption {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.howto-note {
+  font-size: 0.85rem;
+}
+.howto-step {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+/* Compact, non-interactive mockups reuse the real board/list/cell styles. */
+.howto-board,
+.howto-cwlist,
+.howto-cw-board {
+  pointer-events: none;
+}
+.howto-board .row {
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  letter-spacing: 0.16em;
+}
+.howto-board .row.target.target-hidden {
+  cursor: default;
+}
+.howto-cwlist .cw-row {
+  cursor: default;
+}
+/* Crossword how-to: a static board diagram beside the list. Wraps (board on
+   top, list below) when there isn't room for both side by side. */
+.howto-cw-diagram {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-start;
+}
+.howto-cw-diagram .howto-cwlist {
+  flex: 1 1 220px;
+}
+.howto-cw-board {
+  --cw-cell: 26px;
+  display: grid;
+  grid-template-columns: repeat(5, var(--cw-cell));
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.howto-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.howto-mode + .howto-mode {
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.howto-mode-title {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
 /* ====================== Views (menu / classic / crossword) ====================== */
 .view {
   display: flex;
@@ -444,6 +567,29 @@ footer {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+}
+/* Keep children at their natural height so tall content (e.g. an expanded
+   "Como jogar?") overflows and scrolls, instead of being squished to fit and
+   clipped. */
+.game-main > * {
+  flex-shrink: 0;
+}
+/* Let the scrollable middle span the full window width so its scrollbar sits at
+   the far right (like the menu) instead of beside a centred column. The content
+   stays centred via horizontal padding, the same trick as the topbar/input
+   area. --content-max matches each view's original column width. */
+#classic-view {
+  --content-max: 480px;
+}
+#crossword-view {
+  --content-max: 920px;
+}
+#classic-view .game-main,
+#crossword-view .game-main {
+  max-width: none;
+  margin: 0;
+  padding-left: max(16px, calc((100% - var(--content-max)) / 2));
+  padding-right: max(16px, calc((100% - var(--content-max)) / 2));
 }
 .input-area {
   flex-shrink: 0;
@@ -1159,5 +1305,12 @@ button.hint-btn[aria-disabled="true"] {
     padding-top: 6px;
     padding-bottom: 6px;
     gap: 6px;
+  }
+
+  /* The compact layout shrinks the flex gap to fit the game above the fold, but
+     the how-to is scrollable content below it, so keep comfortable breathing
+     room around its divider. This margin offsets the reduced gap. */
+  .howto-divider {
+    margin-block: 6px;
   }
 }

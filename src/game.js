@@ -47,8 +47,6 @@ export function initClassic({ onBack, onRoute, crossPromo } = {}) {
   const puzzleDate = $("puzzle-date");
   const hintBtn = $("hint-btn");
   const hintsEl = $("hints");
-  const helpBtn = $("help-btn");
-  const helpDialog = $("help-dialog");
   const endDialog = $("end-dialog");
   const endTitle = $("end-title");
   const endBody = $("end-body");
@@ -509,9 +507,6 @@ export function initClassic({ onBack, onRoute, crossPromo } = {}) {
   setInterval(() => {
     if (!document.hidden && classicView && !classicView.hidden) updateHintButton();
   }, 500);
-  helpBtn.addEventListener("click", () => {
-    if (typeof helpDialog.showModal === "function") helpDialog.showModal();
-  });
   shareBtn.addEventListener("click", share);
   puzzleDate.classList.add("link-chip");
   puzzleDate.addEventListener("click", shareLink);

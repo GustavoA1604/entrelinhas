@@ -31,7 +31,7 @@ export const GAME_RULES = [
   "A palavra do dia é a mesma para todo mundo naquele dia. O mesmo se aplica para o jogo do modo cruzadas.",
   "No modo Clássico você tem 15 tentativas; nas Cruzadas, 50.",
   "A palavra secreta está sempre em ordem alfabética entre os seus dois limites.",
-  "Cada palpite diminiu o intervalo de possíveis respostas. Se ele vem antes da palavra secreta, vira o limite de cima; caso contrário, o limite de baixo.",
+  "Cada palpite diminiui o intervalo de possíveis respostas. Se ele vem antes da palavra secreta, vira o limite de cima; caso contrário, o limite de baixo.",
   "Quanto mais perto a sua palavra estiver da secreta, menos palavras restam entre elas.",
   "Palpites fora dos limites atuais não são aceitos, garantindo que você esteja sempre mais próximo da resposta.",
   "Usar dicas no modo clássico revela as últimas letras da palavra secreta pois são as letras mais difíceis de se ter certeza.",

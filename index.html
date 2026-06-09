@@ -125,6 +125,8 @@
             ⟲
           </button>
         </p>
+
+        <section class="howto" data-howto="both" aria-label="Como jogar"></section>
       </main>
 
       <footer class="menu-footer">
@@ -197,7 +199,6 @@
             </svg>
             <span class="hint-icon">💡</span>
           </button>
-          <button id="help-btn" class="ghost" title="Como jogar" aria-label="Como jogar">?</button>
         </div>
       </header>
 
@@ -218,6 +219,9 @@
           <div id="target-row" class="row target target-hidden"></div>
           <div id="upper-row" class="row bound-sentinel"></div>
         </div>
+
+        <hr class="howto-divider" />
+        <section class="howto" data-howto="classic" aria-label="Como jogar"></section>
       </main>
 
       <footer class="input-area">
@@ -243,50 +247,6 @@
           <button type="submit" hidden aria-hidden="true"></button>
         </form>
       </footer>
-
-      <dialog id="help-dialog">
-        <h2>Como jogar</h2>
-        <p>
-          Existe uma palavra secreta de 5 letras escondida em algum lugar do dicionário, entre
-          <code>AAAAA</code> e <code>ZZZZZ</code>.
-        </p>
-        <p>A cada palpite, o intervalo se aperta:</p>
-        <ul>
-          <li>se sua palavra vier <em>antes</em> da secreta, ela vira o novo limite de cima;</li>
-          <li>se vier <em>depois</em>, vira o novo limite de baixo.</li>
-        </ul>
-        <p>
-          Ao lado de cada limite aparece quantas palavras do dicionário ainda existem entre ele e a
-          secreta (<strong>1 palavra = 1 passo</strong>). Mais perto, melhor.
-        </p>
-        <p>
-          Em baixo do tabuleiro, o teclado mostra quais letras ainda fazem sentido como próximo
-          caractere. Letras que cairiam fora dos limites ficam apagadas, e palpites fora do
-          intervalo são bloqueados.
-        </p>
-        <p>
-          Você tem <strong>15 tentativas</strong>. Acentos são ignorados (use só
-          <code>a</code>–<code>z</code>).
-        </p>
-        <p>
-          Modo <strong>Palavra do dia</strong>: uma palavra por dia, igual para todo mundo (use o
-          <strong>📅</strong> para escolher uma data anterior). Modo <strong>Aleatório</strong>:
-          jogue quantas vezes quiser; use o <strong>🔗</strong> para colar o código de um jogo e
-          jogar exatamente o mesmo.
-        </p>
-        <p>
-          Toque na data ou no código (no topo) para copiar um link do jogo: quem abrir cai
-          exatamente no mesmo desafio. O botão <strong>Compartilhar</strong> no fim inclui esse link
-          no resultado.
-        </p>
-        <p>
-          O botão <strong>💡</strong> no topo libera dicas quando o intervalo aperta. O anel ao
-          redor mostra o progresso: primeiro ele enche conforme você acerta palpites (cor escura),
-          depois enche enquanto o tempo passa (cor clara). A primeira dica revela a
-          <em>última letra</em>; a segunda revela a <em>penúltima</em>.
-        </p>
-        <form method="dialog"><button>Entendi</button></form>
-      </dialog>
 
       <dialog id="end-dialog">
         <form method="dialog" class="dialog-close">
@@ -325,9 +285,6 @@
             </svg>
             <span class="hint-icon">💡</span>
           </button>
-          <button id="cw-help-btn" class="ghost" title="Como jogar" aria-label="Como jogar">
-            ?
-          </button>
         </div>
       </header>
 
@@ -337,7 +294,8 @@
           <span id="cw-puzzle-date"></span>
           <span class="dot">·</span>
           <span
-            >Tentativas restantes: <strong id="cw-guesses-left">50</strong>/<strong id="cw-guesses-total"
+            >Tentativas restantes: <strong id="cw-guesses-left">50</strong>/<strong
+              id="cw-guesses-total"
               >50</strong
             ></span
           >
@@ -362,6 +320,9 @@
             <div id="cw-list" class="cw-list" aria-live="polite"></div>
           </div>
         </div>
+
+        <hr class="howto-divider" />
+        <section class="howto" data-howto="crossword" aria-label="Como jogar"></section>
       </main>
 
       <footer class="input-area">
@@ -387,39 +348,6 @@
           <button type="submit" hidden aria-hidden="true"></button>
         </form>
       </footer>
-
-      <dialog id="cw-help-dialog">
-        <h2>Como jogar (Cruzadas)</h2>
-        <p>
-          Várias palavras secretas de 5 letras estão escondidas no tabuleiro, interligadas como em
-          palavras cruzadas.
-        </p>
-        <p>
-          À direita, a lista funciona como no modo clássico: cada palpite se encaixa em ordem
-          alfabética entre <code>AAAAA</code> e <code>ZZZZZ</code>, mostrando a distância em
-          palavras do dicionário até a secreta mais próxima em cada direção.
-        </p>
-        <p>
-          Grupos de <code>?????</code> indicam quantas secretas ainda existem entre dois palpites
-          consecutivos. Quando você acerta uma secreta, ela aparece no tabuleiro e continua na lista
-          (marcada com <strong>✓</strong>) como um novo limite, estreitando o intervalo das secretas
-          que ainda faltam.
-        </p>
-        <p>Palpites fora dos limites (ou em faixas já descartadas) são bloqueados.</p>
-        <p>Você tem <strong>50 tentativas</strong> para acertar todas.</p>
-        <p>
-          Use o <strong>📅</strong> para jogar as cruzadas de um dia anterior e o
-          <strong>🔗</strong> para colar o código de um jogo aleatório. Toque na data ou no código
-          (no topo) para copiar um link: quem abrir cai exatamente nas mesmas cruzadas.
-        </p>
-        <p>
-          O botão <strong>💡</strong> no topo libera até <strong>3 dicas</strong> conforme você se
-          aproxima das secretas. O anel ao redor mostra o progresso: primeiro enche conforme você
-          reduz a distância (cor escura), depois enche enquanto o tempo passa (cor clara). Ao usar
-          uma dica, você escolhe qualquer letra do tabuleiro para revelar.
-        </p>
-        <form method="dialog"><button>Entendi</button></form>
-      </dialog>
 
       <dialog id="cw-end-dialog">
         <form method="dialog" class="dialog-close">

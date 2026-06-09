@@ -192,8 +192,6 @@ export function initCrossword({ onBack, onRoute, crossPromo } = {}) {
   const puzzleDate = $("cw-puzzle-date");
   const hintBtn = $("cw-hint-btn");
   const hintsEl = $("cw-hints");
-  const helpBtn = $("cw-help-btn");
-  const helpDialog = $("cw-help-dialog");
   const endDialog = $("cw-end-dialog");
   const endTitle = $("cw-end-title");
   const endBody = $("cw-end-body");
@@ -757,9 +755,6 @@ export function initCrossword({ onBack, onRoute, crossPromo } = {}) {
   setInterval(() => {
     if (!document.hidden && crosswordView && !crosswordView.hidden) updateHintButton();
   }, 500);
-  helpBtn.addEventListener("click", () => {
-    if (typeof helpDialog.showModal === "function") helpDialog.showModal();
-  });
   shareBtn.addEventListener("click", share);
   puzzleDate.classList.add("link-chip");
   puzzleDate.addEventListener("click", shareLink);

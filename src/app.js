@@ -6,6 +6,7 @@ import { parseHash, buildHash, extractSeed } from "./routes.js";
 import { copyToClipboard } from "./share-helpers.js";
 import { showToast } from "./toast.js";
 import { pickTrivia } from "./trivia.js";
+import { initHowTo } from "./howto.js";
 
 // Keep --app-height tracking the visible viewport (above the on-screen keyboard)
 // so game views can size to it. dvh alone isn't reliable on iOS Safari.
@@ -38,6 +39,9 @@ if (triviaEl && triviaTextEl) {
       triviaTextEl.textContent = pickTrivia();
     });
 }
+
+// Build the inline "Como jogar?" sections (menu + both game views).
+initHowTo();
 
 const views = {
   menu: document.getElementById("menu-view"),

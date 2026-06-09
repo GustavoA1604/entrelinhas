@@ -102,6 +102,7 @@ src/
   storage.js            # helpers de localStorage
   share-helpers.js      # Web Share API + cópia para a área de transferência
   toast.js              # toasts efêmeros
+  howto.js              # seção "Como jogar?" recolhível (menu e ambos os jogos)
   data/                 # gerado a partir do submódulo wordlists/ (não editar à mão)
     answers.js          # ANSWERS: lista de respostas
     valid.js            # VALID: Set de palavras aceitas
