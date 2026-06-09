@@ -477,7 +477,7 @@ export function initCrossword({ onBack, onRoute, crossPromo } = {}) {
       input.focus({ preventScroll: true });
     };
     if (!/^[a-z]{5}$/.test(word)) {
-      fail("Use 5 letras (a–z).");
+      fail("Use 5 letras (a-z) em sua tentativa.");
       return;
     }
     if (!VALID.has(word) && !state.secrets.includes(word)) {
@@ -689,7 +689,21 @@ export function initCrossword({ onBack, onRoute, crossPromo } = {}) {
     e.preventDefault();
     if (!input.disabled) form.requestSubmit();
   });
+  // The input is capped at 5 letters, so extra keystrokes are silently
+  // dropped. Nudge after a few consecutive over-the-limit presses so it isn't
+  // a mystery why typing "stopped working". The counter resets whenever the
+  // value actually changes (see the input listener below).
+  let overflowAttempts = 0;
+  input.addEventListener("keydown", (e) => {
+    if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
+    const noSelection = input.selectionStart === input.selectionEnd;
+    if (input.value.length >= 5 && noSelection && ++overflowAttempts >= 3) {
+      setMessage("Use 5 letras (a-z) em sua tentativa.", "error");
+      overflowAttempts = 0;
+    }
+  });
   input.addEventListener("input", () => {
+    overflowAttempts = 0;
     const cleaned = normalize(input.value).slice(0, 5);
     if (cleaned !== input.value) input.value = cleaned;
     renderAlphabet();
