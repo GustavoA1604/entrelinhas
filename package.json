@@ -8,6 +8,7 @@
   "homepage": "https://gustavoa1604.github.io/entrelinhas/",
   "scripts": {
     "serve": "node scripts/serve.js 8000",
+    "gen:data": "node scripts/gen-data.js",
     "gen:trivia": "node scripts/gen-trivia-stats.js",
     "bump:version": "node scripts/bump-version.js",
     "test": "node --test",

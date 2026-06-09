@@ -79,7 +79,7 @@ Passos para a opção 2:
    - Salve.
 4. Em ~1 minuto, o site aparece em `https://<seu-usuário>.github.io/entrelinhas/`.
 
-Os arquivos crus `_raw_*.txt` / `_raw_*.json` não são necessários para rodar; você pode adicioná-los ao `.gitignore` ou apagar.
+As fontes cruas do dicionário foram movidas para o submódulo `wordlists/` (em `wordlists/pt-br/sources/`); não há mais arquivos `_raw_*` na raiz.
 
 ## Estrutura
 
@@ -107,19 +107,37 @@ src/
 
 Os testes unitários (`node --test`) ficam em `test/` e os de ponta a ponta (Playwright) em `e2e/`.
 
-## Geração das listas (referência)
+## Geração das listas
 
-As listas foram geradas a partir destas fontes públicas:
+O dicionário vive em um repositório separado, incluído aqui como submódulo em
+`wordlists/` (veja `wordlists/README.md`). Ele consolida as fontes e a curadoria
+manual, e publica listas neutras (sem filtro de tamanho) em `wordlists/pt-br/dist/`:
+`words.txt` (válidas) e `common.txt` (respostas candidatas).
 
-- Respostas: [`vhfarias/omret`](https://github.com/vhfarias/omret), `database/wordList.json` (palavras curadas para clones PT-BR de Wordle).
-- Tentativas válidas: [`g-pg/wordle-finder`](https://github.com/g-pg/wordle-finder), `src/data/words.js` (5 letras, sem acentos), complementado pelo dicionário PT-BR de [Ueda](https://www.ime.usp.br/~pf/dicios/).
+O script `scripts/gen-data.js` lê esse `dist/`, filtra para `^[a-z]{5}$`, deduplica
+e ordena, e regenera `src/data/valid.js` e `src/data/answers.js`.
 
-Processamento aplicado:
+Fluxo completo:
 
-1. Remover acentos (NFD + strip de marcas combinantes).
-2. Lowercase.
-3. Manter apenas `^[a-z]{5}$` (sem hífens, dígitos, nomes próprios).
-4. Deduplicar e ordenar.
+```bash
+git submodule update --init wordlists      # primeira vez (clona o submódulo)
+# para adicionar/remover palavras: edite wordlists/pt-br/curated/*.txt e rode:
+npm --prefix wordlists run build           # regenera dist/ a partir das fontes + curadoria
+npm run gen:data                           # regenera valid.js / answers.js
+npm run gen:trivia                         # estatísticas dependem das listas: rode por último
+```
+
+Como `wordlists/` é um submódulo, depois de curar palavras é preciso commitar
+dentro dele e atualizar o ponteiro aqui:
+
+```bash
+cd wordlists && git add -A && git commit -m "..." && cd ..
+git add wordlists src/data && git commit -m "..."   # registra o novo ponteiro + listas
+```
+
+Fontes e licenças ficam documentadas em `wordlists/SOURCES.md`. A curadoria manual
+(adicionar/remover palavras enquanto se joga) agora mora no submódulo, em
+`wordlists/pt-br/curated/`, e sobrevive a atualizações das fontes.
 
 ## Créditos
 

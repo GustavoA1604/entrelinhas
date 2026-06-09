@@ -16,7 +16,13 @@ step. See `README.md` for the full architecture overview.
 
 - Run tests: `npm test` (unit) / `npm run test:e2e` (Playwright).
 - Lint/format: `npm run lint`, `npm run format`.
-- Regenerate trivia stats after changing word lists: `npm run gen:trivia`.
+- Word lists come from the `wordlists/` submodule. Curate words in
+  `wordlists/pt-br/curated/*.txt`, then `npm --prefix wordlists run build` and
+  `npm run gen:data` to regenerate `src/data/valid.js` / `answers.js`. Never edit
+  those two generated files by hand. Run `git submodule update --init wordlists`
+  after a fresh clone.
+- Regenerate trivia stats after changing word lists: `npm run gen:trivia` (run it
+  after `gen:data`, since trivia stats are derived from the lists).
   Hand-written trivia lives in
   `src/data/trivia-curated.js`; never put curated prose in the generated
   `src/data/trivia-stats.js`.
