@@ -32,10 +32,12 @@ Ao abrir um link assim, o jogo carrega direto na partida correspondente. A lógi
 
 ## Listas de palavras
 
-- `answers.js`: ~2.000 palavras comuns em PT-BR, usadas como respostas (baseado em uma lista do clone PT-BR de Wordle).
-- `valid.js`: ~5.500 palavras de 5 letras aceitas como tentativas, mesclando um dicionário PT-BR amplo (acentos removidos).
+Ambas vivem em `src/data/` e são **geradas** a partir do submódulo `wordlists/`; não edite à mão.
 
-Para reconstruir as listas, veja a seção "Geração das listas" abaixo.
+- `answers.js`: ~2.000 palavras comuns em PT-BR, usadas como respostas.
+- `valid.js`: ~5.600 palavras de 5 letras aceitas como tentativas (acentos removidos).
+
+As fontes, a curadoria manual e o pipeline de geração ficam no submódulo; veja a seção "Geração das listas" abaixo.
 
 ## Rodando localmente
 
@@ -100,12 +102,12 @@ src/
   storage.js            # helpers de localStorage
   share-helpers.js      # Web Share API + cópia para a área de transferência
   toast.js              # toasts efêmeros
-  data/
+  data/                 # gerado a partir do submódulo wordlists/ (não editar à mão)
     answers.js          # ANSWERS: lista de respostas
     valid.js            # VALID: Set de palavras aceitas
 ```
 
-Os testes unitários (`node --test`) ficam em `test/` e os de ponta a ponta (Playwright) em `e2e/`.
+Os testes unitários (`node --test`) ficam em `test/` e os de ponta a ponta (Playwright) em `e2e/`. Os scripts de manutenção (geração de listas e trivia, bump de versão) ficam em `scripts/`, e o dicionário é o submódulo `wordlists/` (veja "Geração das listas").
 
 ## Geração das listas
 
