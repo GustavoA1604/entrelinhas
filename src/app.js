@@ -22,7 +22,7 @@ if (window.visualViewport) {
 }
 
 // Bump alongside package.json (and sw.js CACHE_VERSION) on each release.
-const APP_VERSION = "1.0.1";
+const APP_VERSION = "1.0.2";
 const versionEl = document.getElementById("app-version");
 if (versionEl) versionEl.textContent = "v" + APP_VERSION;
 
