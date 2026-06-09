@@ -742,6 +742,12 @@ export function initCrossword({ onBack, onRoute, crossPromo } = {}) {
     if (!Number.isFinite(ox) || !Number.isFinite(oy)) return;
     revealCellAt(ox, oy);
   });
+  // Tapping a secret "?????" row in the list focuses the guess input (and, on
+  // mobile, pops the keyboard, since this runs inside a user gesture).
+  list.addEventListener("click", (e) => {
+    if (input.disabled) return;
+    if (e.target.closest(".cw-group")) input.focus({ preventScroll: true });
+  });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && state.selectingTip) stopSelecting();
   });

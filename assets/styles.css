@@ -215,6 +215,9 @@ main {
 .row.target .tag {
   letter-spacing: 0.04em;
 }
+.row.target.target-hidden {
+  cursor: pointer;
+}
 .row.target.target-revealed-win {
   border-style: solid;
   background: color-mix(in srgb, var(--ok) 22%, var(--bg-2));
@@ -1014,6 +1017,7 @@ button.hint-btn[aria-disabled="true"] {
   color: var(--muted);
   background: transparent;
   border-style: dashed;
+  cursor: pointer;
 }
 .cw-row.cw-guess {
   border-color: var(--accent);

@@ -451,6 +451,11 @@ export function initClassic({ onBack, onRoute, crossPromo } = {}) {
     e.preventDefault();
     if (!input.disabled) form.requestSubmit();
   });
+  // Tapping the secret "?????" row focuses the guess input (and, on mobile,
+  // pops the keyboard, since this runs inside a user gesture).
+  targetRow.addEventListener("click", () => {
+    if (!input.disabled) input.focus({ preventScroll: true });
+  });
   // The input is capped at 5 letters, so extra keystrokes are silently
   // dropped. Nudge after a few consecutive over-the-limit presses so it isn't
   // a mystery why typing "stopped working". The counter resets whenever the
