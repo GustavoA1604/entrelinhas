@@ -176,7 +176,7 @@ export function generateCrossword(seed) {
 }
 
 // === Public init ===
-export function initCrossword({ onBack, onRoute } = {}) {
+export function initCrossword({ onBack, onRoute, crossPromo } = {}) {
   const grid = $("cw-grid");
   const list = $("cw-list");
   const input = $("cw-guess-input");
@@ -198,6 +198,10 @@ export function initCrossword({ onBack, onRoute } = {}) {
   const shareBtn = $("cw-share-btn");
   const playAgainBtn = $("cw-play-again-btn");
   const endMenuBtn = $("cw-end-menu-btn");
+  const crossModeBtn = $("cw-cross-mode-btn");
+  // The "play the other mode's daily" action shown on the end screen, when
+  // offered. Refreshed each time the end dialog opens.
+  let currentPromo = null;
 
   const state = {
     mode: "daily",
@@ -618,6 +622,13 @@ export function initCrossword({ onBack, onRoute } = {}) {
     pre.className = "summary";
     pre.textContent = buildEventLines().join("\n");
     endBody.appendChild(pre);
+    currentPromo = crossPromo ? crossPromo(state.mode, state.dateKey) : null;
+    if (currentPromo) {
+      crossModeBtn.textContent = currentPromo.label;
+      crossModeBtn.hidden = false;
+    } else {
+      crossModeBtn.hidden = true;
+    }
     if (typeof endDialog.showModal === "function") endDialog.showModal();
   }
 
@@ -737,6 +748,11 @@ export function initCrossword({ onBack, onRoute } = {}) {
   endMenuBtn.addEventListener("click", () => {
     endDialog.close();
     onBack && onBack();
+  });
+  crossModeBtn.addEventListener("click", () => {
+    const promo = currentPromo;
+    endDialog.close();
+    promo && promo.play();
   });
 
   function maybeRolloverDaily() {

@@ -285,13 +285,18 @@
       </dialog>
 
       <dialog id="end-dialog">
+        <form method="dialog" class="dialog-close">
+          <button class="icon-close" aria-label="Fechar" title="Fechar">×</button>
+        </form>
         <h2 id="end-title"></h2>
         <div id="end-body"></div>
         <div class="end-actions">
           <button id="share-btn">Compartilhar</button>
-          <button id="play-again-btn">Novo jogo aleatório</button>
-          <button id="end-menu-btn" class="ghost">Menu</button>
-          <form method="dialog"><button class="ghost">Fechar</button></form>
+          <button id="cross-mode-btn" class="cross-mode" hidden></button>
+          <div class="end-actions-row">
+            <button id="play-again-btn" class="ghost">Novo jogo aleatório</button>
+            <button id="end-menu-btn" class="ghost">Menu</button>
+          </div>
         </div>
       </dialog>
     </section>
@@ -409,13 +414,18 @@
       </dialog>
 
       <dialog id="cw-end-dialog">
+        <form method="dialog" class="dialog-close">
+          <button class="icon-close" aria-label="Fechar" title="Fechar">×</button>
+        </form>
         <h2 id="cw-end-title"></h2>
         <div id="cw-end-body"></div>
         <div class="end-actions">
           <button id="cw-share-btn">Compartilhar</button>
-          <button id="cw-play-again-btn">Novo jogo aleatório</button>
-          <button id="cw-end-menu-btn" class="ghost">Menu</button>
-          <form method="dialog"><button class="ghost">Fechar</button></form>
+          <button id="cw-cross-mode-btn" class="cross-mode" hidden></button>
+          <div class="end-actions-row">
+            <button id="cw-play-again-btn" class="ghost">Novo jogo aleatório</button>
+            <button id="cw-end-menu-btn" class="ghost">Menu</button>
+          </div>
         </div>
       </dialog>
     </section>

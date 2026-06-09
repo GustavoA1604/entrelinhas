@@ -73,8 +73,33 @@ function showMenu() {
   setRoute(null);
 }
 
-const classic = initClassic({ onBack: leaveToMenu, onRoute: setRoute });
-const crossword = initCrossword({ onBack: leaveToMenu, onRoute: setRoute });
+// On the end screen, offer to play today's *other* mode when its daily is still
+// open. Only for today's daily (the "do dia" concept), and only when the other
+// mode hasn't been finished yet (unplayed or in-progress).
+function makeCrossPromo(currentMode) {
+  return (variant, dateKey) => {
+    if (variant !== "daily" || dateKey !== todayKey()) return null;
+    const otherMode = currentMode === "classic" ? "crossword" : "classic";
+    const prefix = otherMode === "crossword" ? CROSSWORD_STORAGE_PREFIX : CLASSIC_STORAGE_PREFIX;
+    const status = statusFor(prefix, dateKey);
+    if (status === "won" || status === "lost") return null;
+    return {
+      label: otherMode === "crossword" ? "Jogar Cruzadas do dia" : "Jogar Modo Clássico do dia",
+      play: () => startGame(otherMode, "daily", dateKey),
+    };
+  };
+}
+
+const classic = initClassic({
+  onBack: leaveToMenu,
+  onRoute: setRoute,
+  crossPromo: makeCrossPromo("classic"),
+});
+const crossword = initCrossword({
+  onBack: leaveToMenu,
+  onRoute: setRoute,
+  crossPromo: makeCrossPromo("crossword"),
+});
 
 function activeGame() {
   if (!views.classic.hidden) return classic;

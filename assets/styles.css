@@ -335,9 +335,59 @@ dialog code {
 
 .end-actions {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  flex-wrap: wrap;
   margin-top: 12px;
+}
+.end-actions > button {
+  width: 100%;
+}
+/* Secondary actions share one row below the primary buttons. */
+.end-actions-row {
+  display: flex;
+  gap: 8px;
+}
+.end-actions-row > button {
+  flex: 1;
+}
+/* "Play the other mode's daily" call to action: a distinct positive accent. */
+.cross-mode {
+  background: var(--ok);
+  color: #15281f;
+}
+
+/* Close (×) affordance in the top-right corner of a dialog. */
+dialog {
+  position: relative;
+}
+.dialog-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  margin: 0;
+}
+button.icon-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  line-height: 1;
+  font-size: 1.5rem;
+  border-radius: 8px;
+}
+button.icon-close:hover {
+  color: var(--fg);
+  background: var(--bg);
+  filter: none;
+}
+#end-title,
+#cw-end-title {
+  padding-right: 32px;
 }
 
 #end-body .summary {
