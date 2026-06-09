@@ -37,8 +37,7 @@ if (orphans.length) {
   throw new Error(`answers not in valid: ${orphans.slice(0, 10).join(", ")}`);
 }
 
-const quoted = (words, indent = "  ") =>
-  words.map((w) => `${indent}"${w}",`).join("\n");
+const quoted = (words, indent = "  ") => words.map((w) => `${indent}"${w}",`).join("\n");
 
 writeFileSync(
   join(root, "src", "data", "valid.js"),
