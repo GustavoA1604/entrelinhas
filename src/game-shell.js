@@ -129,14 +129,19 @@ export function createGameController(spec) {
     writeJSON(storagePrefix + state.dateKey, payload);
   }
 
+  // True while a game is in progress: started (a guess or a revealed tip) but
+  // not finished. Both the topbar hint/back swap and the leave-confirmation
+  // prompt key off this, so leaving in any other state loses nothing.
+  function isInProgress() {
+    return (state.guesses.length > 0 || state.tipsRevealed.length > 0) && !state.done;
+  }
+
   // --- Hint button ---
   function updateHintButton() {
     const hintBtn = els.hintBtn;
-    // When there's no progress to lose (game not started, or finished), swap the
-    // hint button for a back-to-menu arrow: leaving here needs no confirmation,
-    // matching exitInfo()'s "safe to leave" condition below.
-    const started = state.guesses.length > 0 || state.tipsRevealed.length > 0;
-    const safeToLeave = state.done || !started;
+    // With nothing to lose (not started, or finished), swap the hint button for
+    // a back-to-menu arrow: leaving then needs no confirmation.
+    const safeToLeave = !isInProgress();
     if (els.backBtn) els.backBtn.hidden = !safeToLeave;
     hintBtn.hidden = safeToLeave;
     hintBtn.style.setProperty("--tip-progress", "0");
@@ -386,11 +391,10 @@ export function createGameController(spec) {
     focus() {
       focusInput();
     },
-    // Details for the leave-confirmation dialog when a game is in progress
-    // (started, not finished); null when leaving needs no confirmation.
+    // Details for the leave-confirmation dialog when a game is in progress;
+    // null when leaving needs no confirmation.
     exitInfo() {
-      const started = state.guesses.length > 0 || state.tipsRevealed.length > 0;
-      if (state.done || !started) return null;
+      if (!isInProgress()) return null;
       if (state.mode === "random") {
         return {
           message:

@@ -345,7 +345,6 @@ document.addEventListener("click", (e) => {
 // drops the data-theme attribute so the prefers-color-scheme media query rules.
 // The no-flash <script> in index.html mirrors apply(); keep them in sync.
 const THEME_KEY = "entrelinhas:theme";
-const THEME_COLORS = { light: "#f7f8fb", dark: "#1f2330" };
 
 function currentTheme() {
   const t = readJSON(THEME_KEY);
@@ -361,9 +360,12 @@ function applyTheme(theme) {
     root.removeAttribute("data-theme");
     writeJSON(THEME_KEY, "system");
   }
-  const dark = theme === "dark" || (theme === "system" && !prefersLight.matches);
+  // Mirror the now-resolved background into the theme-color meta so the browser
+  // chrome matches. Reading the computed --bg keeps CSS the single source of
+  // truth for the palette (the no-flash script in index.html is the one place
+  // that must still hard-code the hex, since it runs before the stylesheet).
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = dark ? THEME_COLORS.dark : THEME_COLORS.light;
+  if (meta) meta.content = getComputedStyle(root).getPropertyValue("--bg").trim();
 }
 
 const prefersLight = window.matchMedia("(prefers-color-scheme: light)");
