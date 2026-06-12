@@ -13,8 +13,11 @@
   --topbar-h: 60px;
 }
 
+/* Light palette. Applied either when the OS asks for light and the user hasn't
+   chosen a theme (no data-theme attribute), or when they explicitly pick light.
+   An explicit data-theme always wins over the OS preference. */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme]) {
     --bg: #f7f8fb;
     --bg-2: #ffffff;
     --fg: #1c2030;
@@ -22,6 +25,14 @@
     --accent: #7093f3;
     --border: #d8dce6;
   }
+}
+:root[data-theme="light"] {
+  --bg: #f7f8fb;
+  --bg-2: #ffffff;
+  --fg: #1c2030;
+  --muted: #5b6275;
+  --accent: #7093f3;
+  --border: #d8dce6;
 }
 
 * {
@@ -94,6 +105,18 @@ body {
 .actions {
   display: flex;
   gap: 8px;
+}
+
+/* Square icon button in the topbar (the ⚙️ settings entry point). Mirrors the
+   hint button's metrics so the two sit evenly side by side. */
+.settings-btn {
+  font-size: 1.05rem;
+  padding: 10px;
+  aspect-ratio: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 button,
@@ -1318,4 +1341,76 @@ button.hint-btn[aria-disabled="true"] {
   .howto-divider {
     margin-block: 6px;
   }
+}
+
+/* ====================== Settings dialog ====================== */
+.settings-group {
+  margin-top: 18px;
+}
+.settings-group:first-of-type {
+  margin-top: 8px;
+}
+.settings-group-title {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.settings-label {
+  font-weight: 500;
+}
+#settings-nav > button {
+  width: 100%;
+}
+
+/* Segmented control: a row of radio buttons styled as connected pills. */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg);
+}
+.segmented label {
+  position: relative;
+  cursor: pointer;
+}
+.segmented label + label {
+  border-left: 1px solid var(--border);
+}
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.segmented span {
+  display: block;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  color: var(--muted);
+  white-space: nowrap;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+.segmented label:hover span {
+  color: var(--fg);
+}
+.segmented input:checked + span {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.segmented input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }

@@ -1,7 +1,7 @@
 import { initClassic, CLASSIC_STORAGE_PREFIX, DAILY_EPOCH } from "./game.js";
 import { initCrossword, CROSSWORD_STORAGE_PREFIX } from "./crossword.js";
 import { todayKey, listDateKeys, formatDate } from "./daily.js";
-import { readJSON } from "./storage.js";
+import { readJSON, writeJSON } from "./storage.js";
 import { parseHash, buildHash, extractSeed } from "./routes.js";
 import { copyToClipboard } from "./share-helpers.js";
 import { showToast } from "./toast.js";
@@ -339,6 +339,72 @@ if (seedDialogInput) {
 document.addEventListener("click", (e) => {
   if (e.target.closest("[data-seed-cancel]") && seedDialog) seedDialog.close();
 });
+
+// === Settings dialog (theme, and back-to-menu while in a game) ===
+// Theme: "system" (follow OS), "light", or "dark". "system" stores nothing and
+// drops the data-theme attribute so the prefers-color-scheme media query rules.
+// The no-flash <script> in index.html mirrors apply(); keep them in sync.
+const THEME_KEY = "entrelinhas:theme";
+const THEME_COLORS = { light: "#f7f8fb", dark: "#1f2330" };
+
+function currentTheme() {
+  const t = readJSON(THEME_KEY);
+  return t === "light" || t === "dark" ? t : "system";
+}
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === "light" || theme === "dark") {
+    root.setAttribute("data-theme", theme);
+    writeJSON(THEME_KEY, theme);
+  } else {
+    root.removeAttribute("data-theme");
+    writeJSON(THEME_KEY, "system");
+  }
+  const dark = theme === "dark" || (theme === "system" && !prefersLight.matches);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = dark ? THEME_COLORS.dark : THEME_COLORS.light;
+}
+
+const prefersLight = window.matchMedia("(prefers-color-scheme: light)");
+// Keep the theme-color meta accurate when the OS theme flips under "system".
+prefersLight.addEventListener("change", () => {
+  if (currentTheme() === "system") applyTheme("system");
+});
+
+const settingsDialog = document.getElementById("settings-dialog");
+const settingsNav = document.getElementById("settings-nav");
+const settingsMenuBtn = document.getElementById("settings-menu-btn");
+
+function openSettings() {
+  // Sync the radios to the stored value each time it opens.
+  const theme = currentTheme();
+  for (const input of settingsDialog.querySelectorAll('input[name="theme"]')) {
+    input.checked = input.value === theme;
+  }
+  // The back-to-menu action only makes sense inside a game.
+  if (settingsNav) settingsNav.hidden = view === "menu";
+  if (typeof settingsDialog.showModal === "function") settingsDialog.showModal();
+  else settingsDialog.setAttribute("open", "");
+}
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-settings]")) openSettings();
+});
+
+if (settingsDialog) {
+  settingsDialog.addEventListener("change", (e) => {
+    const input = e.target.closest('input[name="theme"]');
+    if (input && input.checked) applyTheme(input.value);
+  });
+}
+
+if (settingsMenuBtn) {
+  settingsMenuBtn.addEventListener("click", () => {
+    settingsDialog.close();
+    requestBack();
+  });
+}
 
 // Initial view: respect the hash deep-link, else show the menu. Anchor a clean
 // menu entry at the base of the history stack first, so back/Menu (even on a

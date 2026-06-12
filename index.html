@@ -41,6 +41,19 @@
     <link rel="icon" type="image/png" href="./assets/logo-without-bg.png" />
     <link rel="apple-touch-icon" href="./assets/logo-without-bg.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
+
+    <!-- Apply the saved theme before first paint to avoid a flash of the wrong
+         palette. Mirrors applyTheme() in src/app.js; keep the two in sync. -->
+    <script>
+      try {
+        var t = JSON.parse(localStorage.getItem("entrelinhas:theme") || "null");
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        var light = t === "light" || (t !== "dark" && matchMedia("(prefers-color-scheme: light)").matches);
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = light ? "#f7f8fb" : "#1f2330";
+      } catch (e) {}
+    </script>
+
     <link rel="stylesheet" href="./assets/styles.css" />
   </head>
   <body>
@@ -48,7 +61,16 @@
     <section id="menu-view" class="view">
       <header class="topbar">
         <h1><img src="./assets/logo-without-bg.png" alt="" class="logo" />Entrelinhas</h1>
-        <div class="actions"></div>
+        <div class="actions">
+          <button
+            class="ghost settings-btn"
+            data-settings
+            title="Configurações"
+            aria-label="Configurações"
+          >
+            ⚙️
+          </button>
+        </div>
       </header>
 
       <main class="menu-main">
@@ -186,7 +208,6 @@
           <img src="./assets/logo-without-bg.png" alt="" class="logo" />Entrelinhas
         </h1>
         <div class="actions">
-          <button class="ghost" data-back title="Voltar ao menu">Menu</button>
           <button
             id="hint-btn"
             class="ghost hint-btn"
@@ -198,6 +219,14 @@
               <circle cx="18" cy="18" r="15" pathLength="100"></circle>
             </svg>
             <span class="hint-icon">💡</span>
+          </button>
+          <button
+            class="ghost settings-btn"
+            data-settings
+            title="Configurações"
+            aria-label="Configurações"
+          >
+            ⚙️
           </button>
         </div>
       </header>
@@ -272,7 +301,6 @@
           <img src="./assets/logo-without-bg.png" alt="" class="logo" />Entrelinhas Cruzadas
         </h1>
         <div class="actions">
-          <button class="ghost" data-back title="Voltar ao menu">Menu</button>
           <button
             id="cw-hint-btn"
             class="ghost hint-btn"
@@ -284,6 +312,14 @@
               <circle cx="18" cy="18" r="15" pathLength="100"></circle>
             </svg>
             <span class="hint-icon">💡</span>
+          </button>
+          <button
+            class="ghost settings-btn"
+            data-settings
+            title="Configurações"
+            aria-label="Configurações"
+          >
+            ⚙️
           </button>
         </div>
       </header>
@@ -380,6 +416,33 @@
         <button type="button" id="exit-confirm">Sair</button>
         <button type="button" class="ghost" id="exit-cancel">Continuar jogando</button>
       </div>
+    </dialog>
+
+    <!-- Shared settings dialog (opened by the ⚙️ in every view's topbar) -->
+    <dialog id="settings-dialog">
+      <form method="dialog" class="dialog-close">
+        <button class="icon-close" aria-label="Fechar" title="Fechar">×</button>
+      </form>
+      <h2>Configurações</h2>
+
+      <section class="settings-group" aria-labelledby="settings-theme-label">
+        <h3 id="settings-theme-label" class="settings-group-title">Aparência</h3>
+        <div class="settings-row">
+          <span class="settings-label">Tema</span>
+          <div class="segmented" role="radiogroup" aria-label="Tema">
+            <label
+              ><input type="radio" name="theme" value="system" /><span>Sistema</span></label
+            >
+            <label><input type="radio" name="theme" value="light" /><span>Claro</span></label>
+            <label><input type="radio" name="theme" value="dark" /><span>Escuro</span></label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Navigation back to the menu lives here, shown only inside a game. -->
+      <section id="settings-nav" class="settings-group" hidden>
+        <button type="button" id="settings-menu-btn" class="ghost">Voltar ao menu</button>
+      </section>
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
