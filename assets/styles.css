@@ -1372,6 +1372,29 @@ button.hint-btn[aria-disabled="true"] {
   width: 100%;
 }
 
+/* Destructive actions (erase data). Ghost variant for the resting trigger,
+   solid variant for the final confirmation. */
+button.ghost.danger {
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 45%, var(--border));
+}
+button.ghost.danger:hover {
+  background: color-mix(in srgb, var(--bad) 12%, transparent);
+  filter: none;
+}
+button.danger:not(.ghost) {
+  background: var(--bad);
+  color: #fff;
+}
+#erase-data-btn {
+  width: 100%;
+}
+.erase-confirm p {
+  margin: 10px 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
 /* Segmented control: a row of radio buttons styled as connected pills. */
 .segmented {
   display: inline-flex;

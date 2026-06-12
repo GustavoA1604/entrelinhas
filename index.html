@@ -441,7 +441,22 @@
 
       <!-- Navigation back to the menu lives here, shown only inside a game. -->
       <section id="settings-nav" class="settings-group" hidden>
-        <button type="button" id="settings-menu-btn" class="ghost">Voltar ao menu</button>
+        <button type="button" id="settings-menu-btn">Voltar ao menu</button>
+      </section>
+
+      <section class="settings-group" aria-labelledby="settings-data-label">
+        <h3 id="settings-data-label" class="settings-group-title">Dados</h3>
+        <button type="button" id="erase-data-btn" class="ghost danger">Apagar meus dados</button>
+        <div id="erase-confirm" class="erase-confirm" hidden>
+          <p>
+            Isso apaga todo o seu progresso (jogos do dia e partidas salvas) e não pode ser
+            desfeito. Suas preferências de tema são mantidas.
+          </p>
+          <div class="end-actions-row">
+            <button type="button" id="erase-confirm-btn" class="danger">Apagar tudo</button>
+            <button type="button" id="erase-cancel-btn" class="ghost">Cancelar</button>
+          </div>
+        </div>
       </section>
     </dialog>
 

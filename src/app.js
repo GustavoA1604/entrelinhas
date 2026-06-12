@@ -1,7 +1,7 @@
 import { initClassic, CLASSIC_STORAGE_PREFIX, DAILY_EPOCH } from "./game.js";
 import { initCrossword, CROSSWORD_STORAGE_PREFIX } from "./crossword.js";
 import { todayKey, listDateKeys, formatDate } from "./daily.js";
-import { readJSON, writeJSON } from "./storage.js";
+import { readJSON, writeJSON, removeByPrefix } from "./storage.js";
 import { parseHash, buildHash, extractSeed } from "./routes.js";
 import { copyToClipboard } from "./share-helpers.js";
 import { showToast } from "./toast.js";
@@ -375,6 +375,16 @@ prefersLight.addEventListener("change", () => {
 const settingsDialog = document.getElementById("settings-dialog");
 const settingsNav = document.getElementById("settings-nav");
 const settingsMenuBtn = document.getElementById("settings-menu-btn");
+const eraseDataBtn = document.getElementById("erase-data-btn");
+const eraseConfirm = document.getElementById("erase-confirm");
+const eraseConfirmBtn = document.getElementById("erase-confirm-btn");
+const eraseCancelBtn = document.getElementById("erase-cancel-btn");
+
+// Collapse the erase-data confirmation back to its single-button resting state.
+function resetEraseConfirm() {
+  if (eraseConfirm) eraseConfirm.hidden = true;
+  if (eraseDataBtn) eraseDataBtn.hidden = false;
+}
 
 function openSettings() {
   // Sync the radios to the stored value each time it opens.
@@ -384,6 +394,7 @@ function openSettings() {
   }
   // The back-to-menu action only makes sense inside a game.
   if (settingsNav) settingsNav.hidden = view === "menu";
+  resetEraseConfirm();
   if (typeof settingsDialog.showModal === "function") settingsDialog.showModal();
   else settingsDialog.setAttribute("open", "");
 }
@@ -403,6 +414,26 @@ if (settingsMenuBtn) {
   settingsMenuBtn.addEventListener("click", () => {
     settingsDialog.close();
     requestBack();
+  });
+}
+
+// Erase data: a click reveals an inline confirmation, then the actual wipe.
+if (eraseDataBtn) {
+  eraseDataBtn.addEventListener("click", () => {
+    eraseDataBtn.hidden = true;
+    if (eraseConfirm) eraseConfirm.hidden = false;
+  });
+}
+if (eraseCancelBtn) eraseCancelBtn.addEventListener("click", resetEraseConfirm);
+if (eraseConfirmBtn) {
+  eraseConfirmBtn.addEventListener("click", () => {
+    removeByPrefix(CLASSIC_STORAGE_PREFIX);
+    removeByPrefix(CROSSWORD_STORAGE_PREFIX);
+    settingsDialog.close();
+    // In a game the cleared progress would leave stale in-memory state, so go
+    // back to the menu (which reads storage fresh) before confirming.
+    if (view !== "menu") leaveToMenu();
+    showToast("Seus dados foram apagados.");
   });
 }
 
