@@ -461,6 +461,10 @@
         </div>
       </section>
 
+      <section class="settings-group">
+        <button type="button" id="open-stats-btn" class="ghost">Estatísticas</button>
+      </section>
+
       <!-- Navigation back to the menu lives here, shown only inside a game. -->
       <section id="settings-nav" class="settings-group" hidden>
         <button type="button" id="settings-menu-btn">Voltar ao menu</button>
@@ -480,6 +484,51 @@
           </div>
         </div>
       </section>
+    </dialog>
+
+    <!-- Statistics dialog (opened from the settings dialog) -->
+    <dialog id="stats-dialog">
+      <button
+        type="button"
+        id="stats-back-btn"
+        class="icon-close stats-back"
+        aria-label="Voltar às configurações"
+        title="Voltar"
+      >
+        ←
+      </button>
+      <form method="dialog" class="dialog-close">
+        <button class="icon-close" aria-label="Fechar" title="Fechar">×</button>
+      </form>
+      <h2>Estatísticas</h2>
+
+      <div class="segmented" role="radiogroup" aria-label="Modo">
+        <label><input type="radio" name="stats-mode" value="classic" /><span>Clássico</span></label>
+        <label
+          ><input type="radio" name="stats-mode" value="crossword" /><span>Cruzadas</span></label
+        >
+      </div>
+
+      <div id="stats-body">
+        <div class="stats-summary">
+          <div class="stat"><span class="stat-num" id="stat-played">0</span>Jogadas</div>
+          <div class="stat"><span class="stat-num" id="stat-winrate">0</span>% vitórias</div>
+          <div class="stat"><span class="stat-num" id="stat-streak">0</span>Sequência</div>
+          <div class="stat"><span class="stat-num" id="stat-maxstreak">0</span>Melhor sequência</div>
+        </div>
+
+        <h3 class="stats-section-title">Distribuição de tentativas</h3>
+        <div id="stats-dist" class="stats-dist"></div>
+
+        <h3 class="stats-section-title">
+          Palavras mais usadas <span class="stats-shared-note">(todos os modos)</span>
+        </h3>
+        <ol id="stats-words" class="stats-words"></ol>
+      </div>
+
+      <p id="stats-empty" class="stats-empty" hidden>
+        Jogue uma partida para ver suas estatísticas.
+      </p>
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>

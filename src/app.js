@@ -7,6 +7,7 @@ import { copyToClipboard } from "./share-helpers.js";
 import { showToast } from "./toast.js";
 import { pickTrivia } from "./trivia.js";
 import { initHowTo } from "./howto.js";
+import { computeModeStats, computeTopWords } from "./stats.js";
 
 // Keep --app-height tracking the visible viewport (above the on-screen keyboard)
 // so game views can size to it. dvh alone isn't reliable on iOS Safari.
@@ -98,15 +99,35 @@ function makeCrossPromo(currentMode) {
   };
 }
 
+// Random games aren't saved per-day, so a finished one is tallied into a small
+// persisted aggregate (daily games stay derived from their saves). Keyed by
+// mode: { played, won, dist: { [guesses]: count }, words: { [word]: count } }.
+const RANDOM_STATS_KEY = "entrelinhas:stats:random";
+function recordRandomGame(mode, { variant, won, words }) {
+  if (variant !== "random") return;
+  const store = readJSON(RANDOM_STATS_KEY) || {};
+  const agg = store[mode] || { played: 0, won: 0, dist: {}, words: {} };
+  agg.played += 1;
+  if (won) {
+    agg.won += 1;
+    agg.dist[words.length] = (agg.dist[words.length] || 0) + 1;
+  }
+  for (const w of words) if (w) agg.words[w] = (agg.words[w] || 0) + 1;
+  store[mode] = agg;
+  writeJSON(RANDOM_STATS_KEY, store);
+}
+
 const classic = initClassic({
   onBack: leaveToMenu,
   onRoute: setRoute,
   crossPromo: makeCrossPromo("classic"),
+  onGameEnd: (summary) => recordRandomGame("classic", summary),
 });
 const crossword = initCrossword({
   onBack: leaveToMenu,
   onRoute: setRoute,
   crossPromo: makeCrossPromo("crossword"),
+  onGameEnd: (summary) => recordRandomGame("crossword", summary),
 });
 
 function activeGame() {
@@ -431,11 +452,140 @@ if (eraseConfirmBtn) {
   eraseConfirmBtn.addEventListener("click", () => {
     removeByPrefix(CLASSIC_STORAGE_PREFIX);
     removeByPrefix(CROSSWORD_STORAGE_PREFIX);
+    removeByPrefix("entrelinhas:stats:");
     settingsDialog.close();
     // In a game the cleared progress would leave stale in-memory state, so go
     // back to the menu (which reads storage fresh) before confirming.
     if (view !== "menu") leaveToMenu();
     showToast("Seus dados foram apagados.");
+  });
+}
+
+// === Statistics dialog (opened from settings) ===
+const statsDialog = document.getElementById("stats-dialog");
+let statsMode = "classic";
+
+// One { date, saved } per day in the daily range, newest first: the shape
+// computeStats expects. `saved` is null for days never played.
+function gatherDailyEntries(mode) {
+  const prefix = prefixFor(mode);
+  return listDateKeys(DAILY_EPOCH, todayKey()).map((date) => ({
+    date,
+    saved: readJSON(prefix + date),
+  }));
+}
+
+function renderStatsDistribution(distribution) {
+  const distEl = document.getElementById("stats-dist");
+  distEl.innerHTML = "";
+  if (distribution.length === 0) {
+    distEl.innerHTML = '<p class="stats-none">Nenhuma vitória ainda.</p>';
+    return;
+  }
+  const maxCount = distribution.reduce((m, d) => Math.max(m, d.count), 0);
+  for (const { guesses, count } of distribution) {
+    const row = document.createElement("div");
+    row.className = "dist-row";
+    const label = document.createElement("span");
+    label.className = "dist-label";
+    label.textContent = guesses;
+    const track = document.createElement("div");
+    track.className = "dist-bar-wrap";
+    const bar = document.createElement("span");
+    bar.className = "dist-bar";
+    bar.style.width = Math.round((count / maxCount) * 100) + "%";
+    track.appendChild(bar);
+    const countEl = document.createElement("span");
+    countEl.className = "dist-count";
+    countEl.textContent = count;
+    row.append(label, track, countEl);
+    distEl.appendChild(row);
+  }
+}
+
+function renderStatsWords(topWords) {
+  const wordsEl = document.getElementById("stats-words");
+  wordsEl.innerHTML = "";
+  if (topWords.length === 0) {
+    wordsEl.innerHTML = '<li class="stats-none">Nenhum palpite ainda.</li>';
+    return;
+  }
+  for (const { word, count } of topWords) {
+    const li = document.createElement("li");
+    const name = document.createElement("span");
+    name.className = "word-name";
+    name.textContent = word.toUpperCase();
+    const c = document.createElement("span");
+    c.className = "word-count";
+    c.textContent = count + "x";
+    li.append(name, c);
+    wordsEl.appendChild(li);
+  }
+}
+
+function renderStats() {
+  const dailyClassic = gatherDailyEntries("classic");
+  const dailyCrossword = gatherDailyEntries("crossword");
+  const randomStore = readJSON(RANDOM_STATS_KEY) || {};
+
+  const dailyEntries = statsMode === "crossword" ? dailyCrossword : dailyClassic;
+  const stats = computeModeStats(dailyEntries, randomStore[statsMode]);
+  document.getElementById("stat-played").textContent = stats.played;
+  document.getElementById("stat-winrate").textContent = stats.winRate;
+  document.getElementById("stat-streak").textContent = stats.currentStreak;
+  document.getElementById("stat-maxstreak").textContent = stats.maxStreak;
+
+  // Most-used words are pooled across both modes (daily + random).
+  const topWords = computeTopWords([
+    { dailyEntries: dailyClassic, randomAgg: randomStore.classic },
+    { dailyEntries: dailyCrossword, randomAgg: randomStore.crossword },
+  ]);
+
+  // Any guessed word anywhere means there's something to show; an empty word
+  // pool means no game has ever been played in either mode.
+  const hasData = topWords.length > 0;
+  document.getElementById("stats-body").hidden = !hasData;
+  document.getElementById("stats-empty").hidden = hasData;
+  if (!hasData) return;
+
+  renderStatsDistribution(stats.distribution);
+  renderStatsWords(topWords);
+}
+
+function openStats() {
+  // Default to the mode you're currently playing, else keep the last choice.
+  if (view === "classic" || view === "crossword") statsMode = view;
+  for (const input of statsDialog.querySelectorAll('input[name="stats-mode"]')) {
+    input.checked = input.value === statsMode;
+  }
+  renderStats();
+  if (typeof statsDialog.showModal === "function") statsDialog.showModal();
+  else statsDialog.setAttribute("open", "");
+}
+
+const openStatsBtn = document.getElementById("open-stats-btn");
+if (openStatsBtn) {
+  openStatsBtn.addEventListener("click", () => {
+    settingsDialog.close();
+    openStats();
+  });
+}
+if (statsDialog) {
+  statsDialog.addEventListener("change", (e) => {
+    const input = e.target.closest('input[name="stats-mode"]');
+    if (input && input.checked) {
+      statsMode = input.value;
+      renderStats();
+    }
+  });
+}
+
+// Back arrow returns to the settings dialog it was opened from.
+const statsBackBtn = document.getElementById("stats-back-btn");
+if (statsBackBtn) {
+  statsBackBtn.addEventListener("click", () => {
+    statsDialog.close();
+    openSettings();
   });
 }
 

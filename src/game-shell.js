@@ -57,7 +57,7 @@ export function createGameController(spec) {
     hintRangeWord,
     exitModeNoun,
     copyErrors,
-    callbacks: { onBack, onRoute, crossPromo },
+    callbacks: { onBack, onRoute, crossPromo, onGameEnd },
   } = spec;
 
   els.guessesTotal.textContent = maxGuesses;
@@ -216,6 +216,14 @@ export function createGameController(spec) {
 
     if (state.done) {
       els.input.disabled = true;
+      // Fire once, on the live transition to finished (not on restore), so the
+      // caller can record stats for games that aren't saved per-day (random).
+      onGameEnd &&
+        onGameEnd({
+          variant: state.mode,
+          won: state.won,
+          words: state.guesses.map((g) => g.word),
+        });
       setTimeout(showEndDialog, 350);
     } else {
       focusInput();
