@@ -456,6 +456,8 @@ if (route && route.variant === "daily" && route.param && route.param > todayKey(
 // Register the service worker for offline play (no-op when unsupported).
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
+    // updateViaCache: "none" ensures the browser never uses a cached sw.js when
+    // checking for updates, so a new deploy's service worker is always seen.
+    navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).catch(() => {});
   });
 }

@@ -26,10 +26,12 @@ const PRECACHE = [
 ];
 
 self.addEventListener("install", (event) => {
+  // `cache: "reload"` bypasses the HTTP cache so a new SW always precaches the
+  // freshly deployed bytes, never a stale copy the browser still has cached.
   event.waitUntil(
     caches
       .open(CACHE_VERSION)
-      .then((cache) => cache.addAll(PRECACHE))
+      .then((cache) => cache.addAll(PRECACHE.map((url) => new Request(url, { cache: "reload" }))))
       .then(() => self.skipWaiting()),
   );
 });
@@ -55,8 +57,10 @@ self.addEventListener("fetch", (event) => {
   // Navigations: network-first so a fresh deploy is picked up online, with the
   // cached shell as the offline fallback.
   if (request.mode === "navigate") {
+    // Fetch by URL with `cache: "reload"` to bypass the HTTP cache (a navigate
+    // Request can't be reconstructed with an init, so we can't reuse it here).
     event.respondWith(
-      fetch(request)
+      fetch(request.url, { cache: "reload" })
         .then((response) => {
           const copy = response.clone();
           caches.open(CACHE_VERSION).then((cache) => cache.put("./index.html", copy));
@@ -67,18 +71,24 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets: cache-first, populating the cache on first network hit.
+  // Static assets: stale-while-revalidate. Serve the cached copy at once (fast,
+  // and works offline), but always refetch in the background (bypassing the HTTP
+  // cache) and update the cache, so a new deploy is picked up on the next load
+  // even if CACHE_VERSION wasn't bumped. Offline, the background fetch just fails
+  // and the cached copy keeps serving.
   event.respondWith(
-    caches.match(request).then(
-      (cached) =>
-        cached ||
-        fetch(request).then((response) => {
-          if (response.ok && response.type === "basic") {
-            const copy = response.clone();
-            caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        }),
+    caches.open(CACHE_VERSION).then((cache) =>
+      cache.match(request).then((cached) => {
+        const network = fetch(new Request(request, { cache: "reload" }))
+          .then((response) => {
+            if (response.ok && response.type === "basic") cache.put(request, response.clone());
+            return response;
+          })
+          .catch(() => cached);
+        // Keep the SW alive until the background refresh settles.
+        event.waitUntil(network.catch(() => {}));
+        return cached || network;
+      }),
     ),
   );
 });
