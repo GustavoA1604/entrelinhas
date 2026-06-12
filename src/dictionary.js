@@ -48,3 +48,18 @@ export function distanceBetween(a, b) {
 export function pluralWords(n) {
   return n === 1 ? "1 palavra" : `${n.toLocaleString("pt-BR")} palavras`;
 }
+
+// Could a 5-letter word starting with `prefix + c` still fall inside any of the
+// open `gaps` (each an exclusive [lo, hi] bound pair)? Powers the alphabet hint
+// that greys out letters which can no longer lead to a valid guess.
+export function prefixFitsGaps(prefix, c, gaps) {
+  const k = prefix.length;
+  if (k >= 5) return false;
+  const pad = 5 - k - 1;
+  const lo = prefix + c + "a".repeat(pad);
+  const hi = prefix + c + "z".repeat(pad);
+  for (const [gLo, gHi] of gaps) {
+    if (hi > gLo && lo < gHi) return true;
+  }
+  return false;
+}

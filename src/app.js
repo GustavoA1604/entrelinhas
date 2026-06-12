@@ -53,6 +53,11 @@ function showView(name) {
   for (const [k, el] of Object.entries(views)) el.hidden = k !== name;
 }
 
+// localStorage prefix for a mode's daily entries.
+function prefixFor(mode) {
+  return mode === "crossword" ? CROSSWORD_STORAGE_PREFIX : CLASSIC_STORAGE_PREFIX;
+}
+
 // Which view is showing, and the URL of the active game (so we can restore it
 // when intercepting the OS/browser back button).
 let view = "menu";
@@ -84,8 +89,7 @@ function makeCrossPromo(currentMode) {
   return (variant, dateKey) => {
     if (variant !== "daily" || dateKey !== todayKey()) return null;
     const otherMode = currentMode === "classic" ? "crossword" : "classic";
-    const prefix = otherMode === "crossword" ? CROSSWORD_STORAGE_PREFIX : CLASSIC_STORAGE_PREFIX;
-    const status = statusFor(prefix, dateKey);
+    const status = statusFor(prefixFor(otherMode), dateKey);
     if (status === "won" || status === "lost") return null;
     return {
       label: otherMode === "crossword" ? "Jogar Cruzadas do dia" : "Jogar Modo Clássico do dia",
@@ -251,7 +255,7 @@ function openPastDays(mode) {
   pastGrid.innerHTML = "";
   const today = todayKey();
   const keys = listDateKeys(DAILY_EPOCH, today);
-  const prefix = mode === "crossword" ? CROSSWORD_STORAGE_PREFIX : CLASSIC_STORAGE_PREFIX;
+  const prefix = prefixFor(mode);
   for (const key of keys) {
     const [, mm, dd] = key.split("-");
     const status = statusFor(prefix, key);

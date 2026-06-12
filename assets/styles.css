@@ -805,6 +805,11 @@ footer {
   flex-wrap: wrap;
   margin: 0 0 4px;
 }
+/* The display:flex above would otherwise override the `hidden` attribute, so
+   the code/link row stays visible (empty) on daily games. Re-assert hiding. */
+.exit-code-row[hidden] {
+  display: none;
+}
 .exit-code {
   flex: 1 1 140px;
   min-width: 0;

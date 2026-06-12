@@ -4,9 +4,13 @@
 // generates the same date key for the same UTC instant.
 const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
 
-export function todayKey() {
-  const d = new Date(Date.now() - BRT_OFFSET_MS);
+// Format a Date as a "YYYY-MM-DD" key from its UTC fields.
+function keyFromDate(d) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+export function todayKey() {
+  return keyFromDate(new Date(Date.now() - BRT_OFFSET_MS));
 }
 
 export function formatDate(key) {
@@ -25,10 +29,7 @@ export function listDateKeys(epoch, today) {
   const end = parseDateKey(today);
   const out = [];
   for (let t = end; t >= start; t -= 86400000) {
-    const d = new Date(t);
-    out.push(
-      `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`,
-    );
+    out.push(keyFromDate(new Date(t)));
   }
   return out;
 }

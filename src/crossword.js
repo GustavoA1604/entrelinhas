@@ -1,16 +1,18 @@
 import { ANSWERS } from "./data/answers.js";
 import { VALID } from "./data/valid.js";
-import { showToast } from "./toast.js";
-import { shareOrCopy } from "./share-helpers.js";
-import { SENTINEL_LOW, SENTINEL_HIGH, normalize, pluralWords } from "./dictionary.js";
-import { todayKey, formatDate, seededRng, makeSeed } from "./daily.js";
-import { readJSON, writeJSON, migrateLegacyDaily } from "./storage.js";
-import { computeHintState } from "./hint.js";
+import {
+  SENTINEL_LOW,
+  SENTINEL_HIGH,
+  normalize,
+  pluralWords,
+  prefixFitsGaps,
+} from "./dictionary.js";
+import { formatDate, seededRng } from "./daily.js";
+import { migrateLegacyDaily } from "./storage.js";
 import { computeCrosswordList, pruneRows, totalUnsolvedDistance } from "./crossword-list.js";
-import { buildShareUrl } from "./routes.js";
+import { createGameController } from "./game-shell.js";
 
 // === Tunables ===
-const MODE = "crossword";
 export const NUM_SECRETS = 5;
 const MAX_GUESSES = 50;
 const STORAGE_PREFIX = "entrelinhas:crossword-daily:";
@@ -176,83 +178,30 @@ export function generateCrossword(seed) {
 }
 
 // === Public init ===
-export function initCrossword({ onBack, onRoute, crossPromo } = {}) {
+export function initCrossword(callbacks = {}) {
   const grid = $("cw-grid");
   const list = $("cw-list");
   const input = $("cw-guess-input");
-  const form = $("cw-guess-form");
-  const guessBtn = $("cw-guess-btn");
   const alphaHint = $("cw-alpha-hint");
   const guessesLeftEl = $("cw-guesses-left");
-  const guessesTotalEl = $("cw-guesses-total");
-  guessesTotalEl.textContent = MAX_GUESSES;
   const solvedCountEl = $("cw-solved-count");
   const totalCountEl = $("cw-total-count");
-  const puzzleLabel = $("cw-puzzle-label");
-  const puzzleDate = $("cw-puzzle-date");
-  const hintBtn = $("cw-hint-btn");
   const hintsEl = $("cw-hints");
-  const endDialog = $("cw-end-dialog");
-  const endTitle = $("cw-end-title");
-  const endBody = $("cw-end-body");
-  const shareBtn = $("cw-share-btn");
-  const playAgainBtn = $("cw-play-again-btn");
-  const endMenuBtn = $("cw-end-menu-btn");
-  const crossModeBtn = $("cw-cross-mode-btn");
-  // The "play the other mode's daily" action shown on the end screen, when
-  // offered. Refreshed each time the end dialog opens.
-  let currentPromo = null;
-
-  const state = {
-    mode: "daily",
-    dateKey: null,
-    seed: null,
-    isHistorical: false,
-    placed: [],
-    secrets: [], // lowercase, in placement order
-    secretsSorted: [], // sorted alphabetic copy
-    solvedSet: new Set(),
-    guesses: [], // { word, isSecret }
-    done: false,
-    won: false,
-    tipsRevealed: [], // [{ pos: [ox, oy], afterGuess: N }]
-    lastGuessAt: Date.now(),
-    selectingTip: false,
-    tipStartRange: null,
-  };
-
-  // Identifies the current game for routing and shareable links.
-  function descriptor() {
-    return state.mode === "daily"
-      ? { mode: MODE, variant: "daily", param: state.dateKey }
-      : { mode: MODE, variant: "random", param: state.seed };
-  }
-
-  function setMessage(text, kind = "") {
-    if (text) showToast(text, kind);
-    else showToast("");
-  }
 
   // --- List computation (see crossword-list.js for the pure logic) ---
-  function computeList() {
+  function computeList(state) {
     return computeCrosswordList({
       secretsSorted: state.secretsSorted,
       solvedSet: state.solvedSet,
       guessWords: state.guesses.map((g) => g.word),
     });
   }
-
-  // --- Validity for input prefix highlighting and submission ---
-  function isLetterValid(prefix, c, liveGaps) {
-    const k = prefix.length;
-    if (k >= 5) return false;
-    const pad = 5 - k - 1;
-    const lo = prefix + c + "a".repeat(pad);
-    const hi = prefix + c + "z".repeat(pad);
-    for (const [gLo, gHi] of liveGaps) {
-      if (hi > gLo && lo < gHi) return true;
-    }
-    return false;
+  function totalDistance(state) {
+    return totalUnsolvedDistance({
+      secretsSorted: state.secretsSorted,
+      solvedSet: state.solvedSet,
+      guessWords: state.guesses.map((g) => g.word),
+    });
   }
   function isWordInLiveGap(word, liveGaps) {
     for (const [gLo, gHi] of liveGaps) {
@@ -260,21 +209,12 @@ export function initCrossword({ onBack, onRoute, crossPromo } = {}) {
     }
     return false;
   }
-
-  // --- Hint helpers ---
-  function revealedSet() {
+  function revealedSet(state) {
     return new Set(state.tipsRevealed.map((t) => `${t.pos[0]},${t.pos[1]}`));
-  }
-  function totalDistance() {
-    return totalUnsolvedDistance({
-      secretsSorted: state.secretsSorted,
-      solvedSet: state.solvedSet,
-      guessWords: state.guesses.map((g) => g.word),
-    });
   }
 
   // --- Rendering ---
-  function renderGrid() {
+  function renderGrid(state) {
     grid.innerHTML = "";
     if (state.placed.length === 0) return;
     let minX = Infinity,
@@ -293,7 +233,7 @@ export function initCrossword({ onBack, onRoute, crossPromo } = {}) {
     }
     const W = maxX - minX + 1;
     const H = maxY - minY + 1;
-    const revealed = revealedSet();
+    const revealed = revealedSet(state);
 
     // cells[y][x] = { letter, solved, ox, oy }
     const cells = Array.from({ length: H }, () => Array.from({ length: W }, () => null));
@@ -337,8 +277,8 @@ export function initCrossword({ onBack, onRoute, crossPromo } = {}) {
     }
   }
 
-  function renderList() {
-    const { rows } = computeList();
+  function renderList(state) {
+    const { rows } = computeList(state);
     const visible = pruneRows(rows);
     list.innerHTML = "";
     for (const r of visible) {
@@ -366,273 +306,49 @@ export function initCrossword({ onBack, onRoute, crossPromo } = {}) {
     }
   }
 
-  function renderAlphabet() {
+  function renderAlphabet(state) {
     const prefix = normalize(input.value);
-    const { liveGaps } = computeList();
+    const { liveGaps } = computeList(state);
     alphaHint.innerHTML = "";
     for (let i = 0; i < 26; i++) {
       const c = String.fromCharCode(97 + i);
       const span = document.createElement("span");
-      span.className = "letter " + (isLetterValid(prefix, c, liveGaps) ? "enabled" : "disabled");
+      span.className = "letter " + (prefixFitsGaps(prefix, c, liveGaps) ? "enabled" : "disabled");
       span.textContent = c;
       alphaHint.appendChild(span);
     }
   }
 
-  function renderAll() {
-    renderGrid();
-    renderList();
-    renderAlphabet();
-    renderHints();
+  function renderBoard(state) {
+    renderGrid(state);
+    renderList(state);
+    renderAlphabet(state);
+    // The revealed letter shows up directly in the grid, so no hint banner.
+    hintsEl.innerHTML = "";
     guessesLeftEl.textContent = MAX_GUESSES - state.guesses.length;
     solvedCountEl.textContent = state.solvedSet.size;
     totalCountEl.textContent = state.secrets.length;
   }
 
-  function renderHints() {
-    // In crossword mode the revealed letter shows up directly in the grid,
-    // so no persistent banner is needed.
-    hintsEl.innerHTML = "";
-  }
-
-  function isHintReady() {
-    const next = HINT_TIPS[state.tipsRevealed.length];
-    if (!next) return false;
-    return totalDistance() <= next.rangeMax && Date.now() - state.lastGuessAt >= next.idleMs;
-  }
-  function updateHintButton() {
-    hintBtn.style.setProperty("--tip-progress", "0");
-    hintBtn.style.setProperty("--tip-ring-color", "var(--muted)");
-    if (state.done) {
-      hintBtn.setAttribute("aria-disabled", "true");
-      hintBtn.classList.remove("ready");
-      hintBtn.title = "Dica";
-      return;
-    }
-    if (state.selectingTip) {
-      hintBtn.setAttribute("aria-disabled", "false");
-      hintBtn.classList.remove("ready");
-      hintBtn.title = "Toque em uma letra para revelar (Esc para cancelar)";
-      return;
-    }
-    const next = HINT_TIPS[state.tipsRevealed.length];
-    if (!next) {
-      hintBtn.setAttribute("aria-disabled", "true");
-      hintBtn.classList.remove("ready");
-      hintBtn.title = "Sem mais dicas";
-      return;
-    }
-    const range = totalDistance();
-    const { rangeOk, rangeProgress, idleProgress, ready, remainSec } = computeHintState({
-      range,
-      start: state.tipStartRange ?? range,
-      rangeMax: next.rangeMax,
-      idleMs: next.idleMs,
-      lastGuessAt: state.lastGuessAt,
-    });
-    hintBtn.setAttribute("aria-disabled", String(!ready));
-    hintBtn.classList.toggle("ready", ready);
-    if (!ready) {
-      if (!rangeOk) {
-        hintBtn.style.setProperty("--tip-progress", String(rangeProgress));
-        hintBtn.style.setProperty("--tip-ring-color", "color-mix(in srgb, var(--warn) 60%, #000)");
-      } else {
-        hintBtn.style.setProperty("--tip-progress", String(idleProgress));
-        hintBtn.style.setProperty("--tip-ring-color", "var(--warn)");
-      }
-    }
-    const reasons = [];
-    if (!rangeOk) reasons.push(`distância ${range} (precisa ≤${next.rangeMax})`);
-    if (idleProgress < 1) reasons.push(`aguarde ${remainSec}s`);
-    hintBtn.title = ready ? "Dica disponível" : `Próxima dica: ${reasons.join(" · ")}`;
-  }
-  function startSelecting() {
-    state.selectingTip = true;
-    grid.classList.add("cw-selecting");
-    setMessage("Toque em uma letra do tabuleiro para revelar (Esc para cancelar).", "");
-    updateHintButton();
-  }
-  function stopSelecting() {
+  // --- Hint selection ---
+  function stopSelecting(state, api) {
     const wasSelecting = state.selectingTip;
     state.selectingTip = false;
     grid.classList.remove("cw-selecting");
-    if (wasSelecting) setMessage("");
-    updateHintButton();
+    if (wasSelecting) api.setMessage("");
+    api.updateHintButton();
   }
-  function revealCellAt(ox, oy) {
+  function revealCellAt(state, api, ox, oy) {
     state.tipsRevealed.push({ pos: [ox, oy], afterGuess: state.guesses.length });
-    state.tipStartRange = totalDistance();
-    stopSelecting();
-    saveDaily();
-    renderAll();
-    updateHintButton();
+    state.tipStartRange = api.currentRange();
+    stopSelecting(state, api);
+    api.save();
+    api.render();
+    api.updateHintButton();
   }
 
-  // --- Game flow ---
-  function submitGuess(raw) {
-    if (state.done) return;
-    const word = normalize(raw);
-    const fail = (text) => {
-      setMessage(text, "error");
-      input.focus({ preventScroll: true });
-    };
-    if (!/^[a-z]{5}$/.test(word)) {
-      fail("Use 5 letras (a-z) em sua tentativa.");
-      return;
-    }
-    if (!VALID.has(word) && !state.secrets.includes(word)) {
-      fail(`"${word}" não está no dicionário.`);
-      return;
-    }
-    if (state.guesses.some((g) => g.word === word)) {
-      fail("Você já tentou essa palavra.");
-      return;
-    }
-    const isSecret = state.secrets.includes(word) && !state.solvedSet.has(word);
-
-    if (!isSecret) {
-      const { liveGaps } = computeList();
-      if (!isWordInLiveGap(word, liveGaps)) {
-        fail(`"${word}" está fora dos limites atuais.`);
-        return;
-      }
-    }
-
-    state.guesses.push({ word, isSecret });
-    state.lastGuessAt = Date.now();
-    if (isSecret) state.solvedSet.add(word);
-
-    if (state.solvedSet.size === state.secrets.length) {
-      state.done = true;
-      state.won = true;
-    } else if (state.guesses.length >= MAX_GUESSES) {
-      state.done = true;
-      state.won = false;
-    }
-
-    input.value = "";
-    setMessage(isSecret ? "Acertou uma! 🎉" : "", isSecret ? "success" : "");
-    saveDaily();
-    renderAll();
-    updateHintButton();
-
-    if (state.done) {
-      input.disabled = true;
-      setTimeout(showEndDialog, 350);
-    } else {
-      input.focus({ preventScroll: true });
-    }
-  }
-
-  function loadDaily(dateKey) {
-    return readJSON(STORAGE_PREFIX + dateKey);
-  }
-  function saveDaily() {
-    if (state.mode !== "daily") return;
-    const payload = {
-      dateKey: state.dateKey,
-      secrets: state.secrets,
-      placed: state.placed,
-      guesses: state.guesses,
-      solved: [...state.solvedSet],
-      done: state.done,
-      won: state.won,
-      tipsRevealed: state.tipsRevealed,
-      tipStartRange: state.tipStartRange,
-    };
-    writeJSON(STORAGE_PREFIX + state.dateKey, payload);
-  }
-
-  // For daily, `param` is the date key; for random, it's the seed (generated if absent).
-  function startGame(mode, param) {
-    if (endDialog.open) endDialog.close();
-    state.mode = mode;
-    state.guesses = [];
-    state.solvedSet = new Set();
-    state.done = false;
-    state.won = false;
-    state.tipsRevealed = [];
-    state.lastGuessAt = Date.now();
-    state.tipStartRange = null;
-    stopSelecting();
-
-    let restored = false;
-    if (mode === "daily") {
-      const today = todayKey();
-      state.dateKey = param || today;
-      state.seed = null;
-      state.isHistorical = state.dateKey !== today;
-      const saved = loadDaily(state.dateKey);
-      if (
-        saved &&
-        saved.dateKey === state.dateKey &&
-        Array.isArray(saved.secrets) &&
-        saved.secrets.length === NUM_SECRETS
-      ) {
-        state.placed = saved.placed;
-        state.secrets = saved.secrets;
-        state.secretsSorted = [...state.secrets].sort();
-        state.guesses = saved.guesses || [];
-        state.solvedSet = new Set(saved.solved || []);
-        state.done = !!saved.done;
-        state.won = !!saved.won;
-        state.tipsRevealed = Array.isArray(saved.tipsRevealed) ? saved.tipsRevealed : [];
-        if (typeof saved.tipStartRange === "number") state.tipStartRange = saved.tipStartRange;
-        restored = true;
-      }
-      puzzleLabel.textContent = "Cruzadas do dia";
-      puzzleDate.textContent = formatDate(state.dateKey);
-    } else {
-      state.dateKey = null;
-      state.seed = param || makeSeed();
-      state.isHistorical = false;
-      puzzleLabel.textContent = "Modo aleatório";
-      puzzleDate.textContent = `código: ${state.seed}`;
-    }
-    puzzleDate.title = "Copiar link do jogo";
-
-    if (!restored) {
-      const seed =
-        mode === "daily" ? `crossword:${state.dateKey}` : `crossword:random:${state.seed}`;
-      const puzzle = generateCrossword(seed);
-      state.placed = puzzle.placed;
-      state.secrets = puzzle.placed.map((p) => p.word);
-      state.secretsSorted = [...state.secrets].sort();
-    }
-    if (state.tipStartRange == null) state.tipStartRange = totalDistance();
-
-    setMessage("");
-    input.value = "";
-    input.disabled = state.done;
-    renderAll();
-    updateHintButton();
-    onRoute && onRoute(descriptor());
-    if (state.done) showEndDialog();
-  }
-
-  function showEndDialog() {
-    endTitle.textContent = state.won ? "Você completou! 🎉" : "Fim de jogo";
-    endBody.innerHTML = "";
-    const info = document.createElement("p");
-    const score = `${state.solvedSet.size}/${state.secrets.length} em ${state.guesses.length}/${MAX_GUESSES}`;
-    info.textContent = `${score} · Palavras: ${state.secretsSorted.join(", ")}.`;
-    info.style.margin = "0 0 10px";
-    endBody.appendChild(info);
-    const pre = document.createElement("pre");
-    pre.className = "summary";
-    pre.textContent = buildEventLines().join("\n");
-    endBody.appendChild(pre);
-    currentPromo = crossPromo ? crossPromo(state.mode, state.dateKey) : null;
-    if (currentPromo) {
-      crossModeBtn.textContent = currentPromo.label;
-      crossModeBtn.hidden = false;
-    } else {
-      crossModeBtn.hidden = true;
-    }
-    if (typeof endDialog.showModal === "function") endDialog.showModal();
-  }
-
-  function buildEventLines() {
+  // --- Summary ---
+  function buildEventLines(state) {
     const lines = [];
     const emitTipsAfter = (k) => {
       for (const t of state.tipsRevealed) {
@@ -657,161 +373,183 @@ export function initCrossword({ onBack, onRoute, crossPromo } = {}) {
     return lines;
   }
 
-  function buildShareText() {
-    const header =
-      state.mode === "daily"
-        ? `Entrelinhas Cruzadas ${formatDate(state.dateKey)}`
-        : "Entrelinhas Cruzadas (aleatório)";
-    const score = `${state.solvedSet.size}/${state.secrets.length} em ${state.guesses.length}/${MAX_GUESSES}`;
-    const events = buildEventLines().join("\n");
-    // The link reopens this exact puzzle (same date, or same random seed).
-    const footer = `Jogue este: ${buildShareUrl(descriptor())}`;
-    return `${header}\n${score}\n\n${events}\n\n${footer}`;
-  }
-  async function share() {
-    const result = await shareOrCopy(buildShareText());
-    if (result === "copied") setMessage("Resultado copiado!", "success");
-    else if (result === "failed") setMessage("Não foi possível copiar o resultado.", "error");
-  }
-  // Copy/share a link to the current puzzle (used by the date/seed chip).
-  async function shareLink() {
-    const result = await shareOrCopy(buildShareUrl(descriptor()));
-    if (result === "copied") setMessage("Link copiado!", "success");
-    else if (result === "failed") setMessage("Não foi possível copiar o link.", "error");
+  function scoreText(state) {
+    return `${state.solvedSet.size}/${state.secrets.length} em ${state.guesses.length}/${MAX_GUESSES}`;
   }
 
-  // --- Wiring ---
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    submitGuess(input.value);
-  });
-  guessBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    if (!input.disabled) form.requestSubmit();
-  });
-  // The input is capped at 5 letters, so extra keystrokes are silently
-  // dropped. Nudge after a few consecutive over-the-limit presses so it isn't
-  // a mystery why typing "stopped working". The counter resets whenever the
-  // value actually changes (see the input listener below).
-  let overflowAttempts = 0;
-  input.addEventListener("keydown", (e) => {
-    if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
-    const noSelection = input.selectionStart === input.selectionEnd;
-    if (input.value.length >= 5 && noSelection && ++overflowAttempts >= 3) {
-      setMessage("Use 5 letras (a-z) em sua tentativa.", "error");
-      overflowAttempts = 0;
-    }
-  });
-  input.addEventListener("input", () => {
-    overflowAttempts = 0;
-    const cleaned = normalize(input.value).slice(0, 5);
-    if (cleaned !== input.value) input.value = cleaned;
-    renderAlphabet();
-  });
-  hintBtn.addEventListener("click", () => {
-    if (state.done) return;
-    if (state.selectingTip) {
-      stopSelecting();
-      return;
-    }
-    if (!isHintReady()) {
-      const next = HINT_TIPS[state.tipsRevealed.length];
-      if (!next) {
-        showToast("Sem mais dicas disponíveis", "warn");
-        return;
-      }
-      const range = totalDistance();
-      const idle = Date.now() - state.lastGuessAt;
-      if (range > next.rangeMax) {
-        showToast("Chegue mais próximo da resposta para liberar a próxima dica", "warn");
-      } else {
-        const remainSec = Math.max(1, Math.ceil((next.idleMs - idle) / 1000));
-        showToast(`Aguarde ${remainSec}s para liberar a dica`, "warn");
-      }
-      return;
-    }
-    startSelecting();
-  });
-  grid.addEventListener("click", (e) => {
-    if (!state.selectingTip) return;
-    const cell = e.target.closest(".cw-cell");
-    if (!cell || cell.classList.contains("cw-empty")) return;
-    if (cell.classList.contains("cw-solved") || cell.classList.contains("cw-revealed")) return;
-    const ox = Number(cell.dataset.ox),
-      oy = Number(cell.dataset.oy);
-    if (!Number.isFinite(ox) || !Number.isFinite(oy)) return;
-    revealCellAt(ox, oy);
-  });
-  // Tapping a secret "?????" row in the list focuses the guess input (and, on
-  // mobile, pops the keyboard, since this runs inside a user gesture).
-  list.addEventListener("click", (e) => {
-    if (input.disabled) return;
-    if (e.target.closest(".cw-group")) input.focus({ preventScroll: true });
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && state.selectingTip) stopSelecting();
-  });
-  const crosswordView = $("crossword-view");
-  setInterval(() => {
-    if (!document.hidden && crosswordView && !crosswordView.hidden) updateHintButton();
-  }, 500);
-  shareBtn.addEventListener("click", share);
-  puzzleDate.classList.add("link-chip");
-  puzzleDate.addEventListener("click", shareLink);
-  playAgainBtn.addEventListener("click", () => {
-    endDialog.close();
-    startGame("random");
-  });
-  endMenuBtn.addEventListener("click", () => {
-    endDialog.close();
-    onBack && onBack();
-  });
-  crossModeBtn.addEventListener("click", () => {
-    const promo = currentPromo;
-    endDialog.close();
-    promo && promo.play();
-  });
+  return createGameController({
+    mode: "crossword",
+    maxGuesses: MAX_GUESSES,
+    storagePrefix: STORAGE_PREFIX,
+    hintTips: HINT_TIPS,
+    dailyTitle: "Cruzadas do dia",
+    hintRangeWord: "distância",
+    exitModeNoun: "nas Cruzadas",
+    copyErrors: {
+      result: "Não foi possível copiar o resultado.",
+      link: "Não foi possível copiar o link.",
+    },
+    callbacks,
+    els: {
+      input,
+      form: $("cw-guess-form"),
+      guessBtn: $("cw-guess-btn"),
+      hintBtn: $("cw-hint-btn"),
+      guessesTotal: $("cw-guesses-total"),
+      puzzleLabel: $("cw-puzzle-label"),
+      puzzleDate: $("cw-puzzle-date"),
+      endDialog: $("cw-end-dialog"),
+      endTitle: $("cw-end-title"),
+      endBody: $("cw-end-body"),
+      shareBtn: $("cw-share-btn"),
+      playAgainBtn: $("cw-play-again-btn"),
+      endMenuBtn: $("cw-end-menu-btn"),
+      crossModeBtn: $("cw-cross-mode-btn"),
+      view: $("crossword-view"),
+    },
 
-  function maybeRolloverDaily() {
-    if (
-      state.mode === "daily" &&
-      !state.isHistorical &&
-      state.dateKey &&
-      state.dateKey !== todayKey()
-    )
-      startGame("daily");
-  }
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) maybeRolloverDaily();
-  });
-  window.addEventListener("focus", maybeRolloverDaily);
+    initState(state) {
+      state.placed = [];
+      state.secrets = []; // lowercase, in placement order
+      state.secretsSorted = []; // sorted alphabetic copy
+      state.solvedSet = new Set();
+      state.selectingTip = false;
+    },
+    resetState(state) {
+      state.solvedSet = new Set();
+      state.selectingTip = false;
+      grid.classList.remove("cw-selecting");
+    },
+    createPuzzle(state) {
+      const seed =
+        state.mode === "daily" ? `crossword:${state.dateKey}` : `crossword:random:${state.seed}`;
+      const puzzle = generateCrossword(seed);
+      state.placed = puzzle.placed;
+      state.secrets = puzzle.placed.map((p) => p.word);
+      state.secretsSorted = [...state.secrets].sort();
+    },
+    restoreDaily(state, saved) {
+      if (
+        !(
+          saved &&
+          saved.dateKey === state.dateKey &&
+          Array.isArray(saved.secrets) &&
+          saved.secrets.length === NUM_SECRETS
+        )
+      )
+        return false;
+      state.placed = saved.placed;
+      state.secrets = saved.secrets;
+      state.secretsSorted = [...state.secrets].sort();
+      state.guesses = saved.guesses || [];
+      state.solvedSet = new Set(saved.solved || []);
+      state.done = !!saved.done;
+      state.won = !!saved.won;
+      state.tipsRevealed = Array.isArray(saved.tipsRevealed) ? saved.tipsRevealed : [];
+      if (typeof saved.tipStartRange === "number") state.tipStartRange = saved.tipStartRange;
+      return true;
+    },
+    serialize(state) {
+      return {
+        secrets: state.secrets,
+        placed: state.placed,
+        solved: [...state.solvedSet],
+      };
+    },
+    currentRange(state) {
+      return totalDistance(state);
+    },
 
-  return {
-    start(mode, param) {
-      startGame(mode, param);
-      input.focus({ preventScroll: true });
-    },
-    focus() {
-      input.focus({ preventScroll: true });
-    },
-    // Details for the leave-confirmation dialog when a game is in progress
-    // (started, not finished); null when leaving needs no confirmation.
-    exitInfo() {
-      const started = state.guesses.length > 0 || state.tipsRevealed.length > 0;
-      if (state.done || !started) return null;
-      if (state.mode === "random") {
-        return {
-          message:
-            "O progresso desta partida aleatória será perdido. Para jogar este mesmo jogo de novo, copie o link (ou anote o código):",
-          code: state.seed,
-          link: buildShareUrl(descriptor()),
-        };
+    applyGuess(word, state) {
+      if (!VALID.has(word) && !state.secrets.includes(word))
+        return { error: `"${word}" não está no dicionário.` };
+      if (state.guesses.some((g) => g.word === word))
+        return { error: "Você já tentou essa palavra." };
+      const isSecret = state.secrets.includes(word) && !state.solvedSet.has(word);
+      if (!isSecret) {
+        const { liveGaps } = computeList(state);
+        if (!isWordInLiveGap(word, liveGaps))
+          return { error: `"${word}" está fora dos limites atuais.` };
       }
-      const how =
-        state.dateKey === todayKey()
-          ? 'Seu progresso fica salvo. Para retomar, escolha "Do dia" nas Cruzadas.'
-          : `Seu progresso fica salvo. Para retomar, use 📅 nas Cruzadas e escolha a data ${formatDate(state.dateKey)}.`;
-      return { message: how, code: null, link: null };
+
+      state.guesses.push({ word, isSecret });
+      state.lastGuessAt = Date.now();
+      if (isSecret) state.solvedSet.add(word);
+      if (state.solvedSet.size === state.secrets.length) {
+        state.done = true;
+        state.won = true;
+      } else if (state.guesses.length >= MAX_GUESSES) {
+        state.done = true;
+        state.won = false;
+      }
+      return {
+        message: isSecret ? "Acertou uma! 🎉" : "",
+        messageKind: isSecret ? "success" : "",
+      };
     },
-  };
+
+    renderBoard,
+    renderAlphabet,
+
+    isSelecting(state) {
+      return state.selectingTip;
+    },
+    onHintClickStart(state, api) {
+      if (state.selectingTip) {
+        stopSelecting(state, api);
+        return true;
+      }
+      return false;
+    },
+    revealHint(state, api) {
+      state.selectingTip = true;
+      grid.classList.add("cw-selecting");
+      api.setMessage("Toque em uma letra do tabuleiro para revelar (Esc para cancelar).", "");
+      api.updateHintButton();
+    },
+    hintRangeToast() {
+      return "Chegue mais próximo da resposta para liberar a próxima dica";
+    },
+
+    endTitle(state) {
+      return state.won ? "Você completou! 🎉" : "Fim de jogo";
+    },
+    endInfo(state) {
+      return `${scoreText(state)} · Palavras: ${state.secretsSorted.join(", ")}.`;
+    },
+    buildSummary(state) {
+      return buildEventLines(state);
+    },
+    buildShareText(state, shareUrl) {
+      const header =
+        state.mode === "daily"
+          ? `Entrelinhas Cruzadas ${formatDate(state.dateKey)}`
+          : "Entrelinhas Cruzadas (aleatório)";
+      const events = buildEventLines(state).join("\n");
+      // The link reopens this exact puzzle (same date, or same random seed).
+      return `${header}\n${scoreText(state)}\n\n${events}\n\nJogue este: ${shareUrl}`;
+    },
+
+    wire(api) {
+      grid.addEventListener("click", (e) => {
+        if (!api.state.selectingTip) return;
+        const cell = e.target.closest(".cw-cell");
+        if (!cell || cell.classList.contains("cw-empty")) return;
+        if (cell.classList.contains("cw-solved") || cell.classList.contains("cw-revealed")) return;
+        const ox = Number(cell.dataset.ox),
+          oy = Number(cell.dataset.oy);
+        if (!Number.isFinite(ox) || !Number.isFinite(oy)) return;
+        revealCellAt(api.state, api, ox, oy);
+      });
+      // Tapping a secret "?????" row in the list focuses the guess input (and, on
+      // mobile, pops the keyboard, since this runs inside a user gesture).
+      list.addEventListener("click", (e) => {
+        if (input.disabled) return;
+        if (e.target.closest(".cw-group")) input.focus({ preventScroll: true });
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && api.state.selectingTip) stopSelecting(api.state, api);
+      });
+    },
+  });
 }

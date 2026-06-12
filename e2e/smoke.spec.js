@@ -130,6 +130,21 @@ test("leaving an in-progress random game asks to confirm and shows the code", as
   await expect(page.locator("#menu-view")).toBeVisible();
 });
 
+test("leaving an in-progress daily game hides the code/link row", async ({ page }) => {
+  // Daily games have no shareable code, so the code/link row must stay hidden.
+  // (A CSS display:flex once overrode the `hidden` attribute, leaving an empty
+  // box and a dead "Copiar link" button.)
+  await page.locator('[data-mode="classic-daily"]').click();
+  await expect(page.locator("#classic-view")).toBeVisible();
+
+  await page.locator("#guess-input").fill("porta");
+  await page.locator("#guess-input").press("Enter");
+
+  await page.locator("#classic-view button[data-back]").click();
+  await expect(page.locator("#exit-dialog")).toBeVisible();
+  await expect(page.locator("#exit-code-row")).toBeHidden();
+});
+
 test("OS back button on an in-progress game triggers the confirm dialog", async ({ page }) => {
   await page.locator('[data-mode="classic-random"]').click();
   await expect(page.locator("#classic-view")).toBeVisible();

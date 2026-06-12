@@ -8,6 +8,7 @@ import {
   stripAccents,
   distanceBetween,
   pluralWords,
+  prefixFitsGaps,
 } from "../src/dictionary.js";
 
 test("VALID_SORTED is sorted ascending and non-empty", () => {
@@ -55,4 +56,34 @@ test("pluralWords formats Portuguese plurals", () => {
   assert.equal(pluralWords(1), "1 palavra");
   assert.equal(pluralWords(2), "2 palavras");
   assert.equal(pluralWords(1000), "1.000 palavras");
+});
+
+test("prefixFitsGaps: full range accepts every first letter", () => {
+  const full = [[SENTINEL_LOW, SENTINEL_HIGH]];
+  for (let i = 0; i < 26; i++) {
+    const c = String.fromCharCode(97 + i);
+    assert.ok(prefixFitsGaps("", c, full), `letter ${c} should fit the full range`);
+  }
+});
+
+test("prefixFitsGaps: a narrow gap rejects letters that fall outside it", () => {
+  // Words must lie strictly between "mar" prefixes and "mas" prefixes.
+  const gaps = [["maraa", "masaa"]];
+  assert.ok(prefixFitsGaps("ma", "r", gaps), "'mar...' overlaps the gap");
+  assert.ok(!prefixFitsGaps("ma", "a", gaps), "'maa...' is below the gap");
+  assert.ok(!prefixFitsGaps("ma", "z", gaps), "'maz...' is above the gap");
+});
+
+test("prefixFitsGaps: matches any of several gaps", () => {
+  const gaps = [
+    ["aaaaa", "abbbb"],
+    ["taaaa", "tbbbb"],
+  ];
+  assert.ok(prefixFitsGaps("", "a", gaps), "'a...' fits the first gap");
+  assert.ok(prefixFitsGaps("", "t", gaps), "'t...' fits the second gap");
+  assert.ok(!prefixFitsGaps("", "m", gaps), "'m...' fits neither gap");
+});
+
+test("prefixFitsGaps: a full 5-letter prefix can add no letter", () => {
+  assert.equal(prefixFitsGaps("abcde", "f", [[SENTINEL_LOW, SENTINEL_HIGH]]), false);
 });
