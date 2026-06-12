@@ -199,6 +199,7 @@ export function initClassic(callbacks = {}) {
       form: $("guess-form"),
       guessBtn: $("guess-btn"),
       hintBtn: $("hint-btn"),
+      backBtn: $("back-btn"),
       guessesTotal: $("guesses-total"),
       puzzleLabel: $("puzzle-label"),
       puzzleDate: $("puzzle-date"),

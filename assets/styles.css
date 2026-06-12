@@ -107,9 +107,11 @@ body {
   gap: 8px;
 }
 
-/* Square icon button in the topbar (the ⚙️ settings entry point). Mirrors the
-   hint button's metrics so the two sit evenly side by side. */
-.settings-btn {
+/* Square icon buttons in the topbar (the ⚙️ settings entry point and the ←
+   back-to-menu arrow). Mirror the hint button's metrics so they sit evenly
+   side by side. */
+.settings-btn,
+.back-btn {
   font-size: 1.05rem;
   padding: 10px;
   aspect-ratio: 1;
@@ -117,6 +119,13 @@ body {
   align-items: center;
   justify-content: center;
   line-height: 1;
+}
+/* These buttons set an explicit display, which would otherwise defeat the
+   `hidden` attribute we toggle them with. */
+.settings-btn[hidden],
+.back-btn[hidden],
+.hint-btn[hidden] {
+  display: none;
 }
 
 button,

@@ -395,6 +395,7 @@ export function initCrossword(callbacks = {}) {
       form: $("cw-guess-form"),
       guessBtn: $("cw-guess-btn"),
       hintBtn: $("cw-hint-btn"),
+      backBtn: $("cw-back-btn"),
       guessesTotal: $("cw-guesses-total"),
       puzzleLabel: $("cw-puzzle-label"),
       puzzleDate: $("cw-puzzle-date"),

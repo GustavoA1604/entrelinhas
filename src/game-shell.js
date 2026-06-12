@@ -132,6 +132,13 @@ export function createGameController(spec) {
   // --- Hint button ---
   function updateHintButton() {
     const hintBtn = els.hintBtn;
+    // When there's no progress to lose (game not started, or finished), swap the
+    // hint button for a back-to-menu arrow: leaving here needs no confirmation,
+    // matching exitInfo()'s "safe to leave" condition below.
+    const started = state.guesses.length > 0 || state.tipsRevealed.length > 0;
+    const safeToLeave = state.done || !started;
+    if (els.backBtn) els.backBtn.hidden = !safeToLeave;
+    hintBtn.hidden = safeToLeave;
     hintBtn.style.setProperty("--tip-progress", "0");
     hintBtn.style.setProperty("--tip-ring-color", "var(--muted)");
     if (state.done) {
