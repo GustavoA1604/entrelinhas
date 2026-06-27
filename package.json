@@ -5,7 +5,7 @@
   "type": "module",
   "private": true,
   "license": "MIT",
-  "homepage": "https://gustavoa1604.github.io/entrelinhas/",
+  "homepage": "https://gustavoefa.com.br/entrelinhas/",
   "scripts": {
     "serve": "node scripts/serve.js 8000",
     "gen:data": "node scripts/gen-data.js",
