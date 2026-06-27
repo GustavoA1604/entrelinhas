@@ -625,6 +625,14 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("[data-feedback]")) openFeedback();
 });
 
+// === Terms of use + privacy dialog (menu footer) ===
+const termsDialog = document.getElementById("terms-dialog");
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("[data-terms]") || !termsDialog) return;
+  if (typeof termsDialog.showModal === "function") termsDialog.showModal();
+  else termsDialog.setAttribute("open", "");
+});
+
 // === "Como jogar?" dialog (in-game help button) ===
 const howtoDialog = document.getElementById("howto-dialog");
 const howtoDialogBody = document.getElementById("howto-dialog-body");

@@ -579,40 +579,74 @@ footer {
   flex: 1;
 }
 
-/* "Como jogar?" dialog: roomier than the default dialog on desktop so the board
-   mockups have space; the base dialog's width:calc(100% - 24px) still caps it on
-   narrow screens. */
-#howto-dialog {
+/* "Como jogar?" and "Termos de Uso" dialogs: roomier than the default dialog on
+   desktop (board mockups / long text need space); the base dialog's
+   width:calc(100% - 24px) still caps them on narrow screens. */
+#howto-dialog,
+#terms-dialog {
   max-width: 640px;
 }
 
-/* Reuses the how-to body markup. Drop the inline panel's horizontal padding (the
-   dialog already pads) and let the long rules scroll inside the body so the title
-   and close button stay pinned. Style the scrollbar to match the theme instead of
-   the OS default. */
-#howto-dialog .howto-body {
-  padding: 4px 0 0;
-  max-height: min(70vh, 560px);
+/* Shared themed scrollbar for long, scrollable dialog bodies. Keeps the dialog
+   title and close button pinned while the content scrolls, and replaces the OS
+   default scrollbar with one that matches the palette. */
+.dialog-scroll {
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
-#howto-dialog .howto-body::-webkit-scrollbar {
+.dialog-scroll::-webkit-scrollbar {
   width: 10px;
 }
-#howto-dialog .howto-body::-webkit-scrollbar-track {
+.dialog-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
-#howto-dialog .howto-body::-webkit-scrollbar-thumb {
+.dialog-scroll::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 6px;
   /* Inset the thumb so it reads as a slim pill rather than a full-width bar. */
   border: 2px solid var(--bg-2);
   background-clip: padding-box;
 }
-#howto-dialog .howto-body::-webkit-scrollbar-thumb:hover {
+.dialog-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
   background-clip: padding-box;
+}
+
+/* "Como jogar?" dialog reuses the how-to body markup. Drop the inline panel's
+   horizontal padding (the dialog already pads). */
+#howto-dialog .howto-body {
+  padding: 4px 0 0;
+  max-height: min(70vh, 560px);
+}
+
+/* Terms of use + privacy dialog. */
+.terms-body {
+  padding: 4px 0 0;
+  max-height: min(70vh, 560px);
+}
+.terms-updated {
+  margin: 0 0 4px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.terms-body h3 {
+  margin: 18px 0 6px;
+  font-size: 1rem;
+}
+.terms-body h3:first-of-type {
+  margin-top: 6px;
+}
+.terms-body p,
+.terms-body li {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+.terms-body ul {
+  margin: 6px 0;
+  padding-left: 1.2em;
 }
 .howto code {
   background: var(--bg);

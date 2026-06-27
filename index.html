@@ -162,6 +162,8 @@
         <span class="dot">·</span>
         <button type="button" class="footer-link" data-feedback>Feedback e sugestões</button>
         <span class="dot">·</span>
+        <button type="button" class="footer-link" data-terms>Termos de Uso</button>
+        <span class="dot">·</span>
         <span id="app-version"></span>
       </footer>
 
@@ -517,7 +519,7 @@
         <button class="icon-close" aria-label="Fechar" title="Fechar">×</button>
       </form>
       <h2>Como jogar?</h2>
-      <div id="howto-dialog-body" class="howto-body"></div>
+      <div id="howto-dialog-body" class="howto-body dialog-scroll"></div>
     </dialog>
 
     <!-- Feedback dialog: embeds a Tally form (opened from the menu footer). The
@@ -540,6 +542,97 @@
           >Abrir o formulário em uma nova aba</a
         >.
       </p>
+    </dialog>
+
+    <!-- Terms of use + privacy dialog (opened from the menu footer). Static
+         content: the game collects no personal data and stores progress only in
+         the visitor's own browser. -->
+    <dialog id="terms-dialog">
+      <form method="dialog" class="dialog-close">
+        <button class="icon-close" aria-label="Fechar" title="Fechar">×</button>
+      </form>
+      <h2>Termos de Uso e Privacidade</h2>
+      <div class="terms-body dialog-scroll">
+        <p>
+          O Entrelinhas é um jogo de palavras <b>gratuito e sem anúncios</b>, feito para
+          entretenimento. Ao usar o jogo, você concorda com os termos abaixo.
+        </p>
+
+        <h3>Uso do jogo</h3>
+        <ul>
+          <li>Você pode jogar livremente, para uso pessoal e não comercial.</li>
+          <li>Não é preciso criar conta nem fornecer nenhum dado pessoal para jogar.</li>
+          <li>
+            Pedimos apenas que você não tente atrapalhar o funcionamento do jogo nem usá-lo de
+            forma ilícita.
+          </li>
+        </ul>
+
+        <h3>Privacidade e seus dados</h3>
+        <ul>
+          <li>
+            Não coletamos dados pessoais. O jogo não pede nome, e-mail nem login, e não há
+            cadastro.
+          </li>
+          <li>
+            Todo o seu progresso (jogos do dia, partidas, estatísticas e preferências) fica
+            guardado apenas no seu navegador, no seu próprio dispositivo. Essas informações nunca
+            são enviadas para nós.
+          </li>
+          <li>
+            Você pode apagar esses dados quando quiser em
+            <strong>Configurações &gt; Apagar meus dados</strong>, ou limpando os dados do site no
+            navegador.
+          </li>
+          <li>
+            O jogo funciona offline e não usa cookies de rastreamento nem ferramentas de análise
+            de comportamento.
+          </li>
+        </ul>
+
+        <h3>Serviços de terceiros</h3>
+        <ul>
+          <li>
+            O site é hospedado no GitHub Pages. Como em qualquer site, o servidor pode registrar
+            informações técnicas de acesso (como endereço IP e tipo de navegador) para
+            funcionamento e segurança, conforme a política do GitHub.
+          </li>
+          <li>
+            O formulário de "Feedback e sugestões" é fornecido pelo Tally e só é carregado se você
+            abrir o formulário. Ele recebe somente as informações que você decidir enviar, de forma
+            voluntária. Não envie dados sensíveis por ali.
+          </li>
+        </ul>
+
+        <h3>Propriedade intelectual</h3>
+        <ul>
+          <li>O Entrelinhas é inspirado no Betweenle, de Tomás Mediavilla.</li>
+          <li>
+            As listas de palavras vêm de fontes abertas, com as licenças descritas no repositório
+            do projeto.
+          </li>
+        </ul>
+
+        <h3>Isenção de garantias</h3>
+        <p>
+          O jogo é oferecido "como está", sem garantias de qualquer tipo. Não garantimos que ele
+          estará sempre disponível ou livre de erros.
+        </p>
+
+        <h3>Limitação de responsabilidade</h3>
+        <p>
+          Na medida permitida por lei, não nos responsabilizamos por quaisquer danos decorrentes do
+          uso ou da impossibilidade de uso do jogo.
+        </p>
+
+        <h3>Alterações nestes termos</h3>
+        <p>
+          Estes termos podem ser atualizados de tempos em tempos. Continuar usando o jogo após uma
+          mudança significa que você concorda com a versão vigente.
+        </p>
+        
+        <p class="terms-updated">Última atualização: 27 de junho de 2026.</p>
+      </div>
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
