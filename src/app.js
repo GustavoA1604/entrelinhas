@@ -683,3 +683,9 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).catch(() => {});
   });
 }
+
+// Signal that the app booted, so the boot-guard in index.html knows init
+// reached the end and doesn't show the failure fallback. Keep this the last
+// statement: if any import or init above throws, this never runs and the guard
+// surfaces the error instead of leaving an inert-looking page.
+window.__entrelinhasBooted = true;

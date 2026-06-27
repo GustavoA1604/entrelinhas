@@ -58,6 +58,93 @@
       } catch (e) {}
     </script>
 
+    <!-- Boot guard. app.js is an ES module, so if any file in its import graph
+         fails to load or throws while initializing, the whole app dies silently
+         and the static menu renders but is inert. This classic (non-module)
+         script can't be killed by that failure: it watches for app.js's boot
+         signal and, if it never arrives, shows the #boot-error fallback instead
+         of leaving a dead-looking page. Styles below are inlined (and use
+         literal colors, not CSS vars) so the message stays legible even if
+         styles.css is the thing that failed to load. -->
+    <style>
+      #boot-error {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(15, 17, 24, 0.92);
+        font-family: system-ui, sans-serif;
+      }
+      #boot-error[hidden] {
+        display: none;
+      }
+      #boot-error .boot-error-box {
+        max-width: 360px;
+        text-align: center;
+        background: #272b3a;
+        color: #eef0f6;
+        border: 1px solid #353a4d;
+        border-radius: 12px;
+        padding: 28px 24px;
+      }
+      #boot-error h2 {
+        margin: 0 0 8px;
+        font-size: 1.25rem;
+      }
+      #boot-error p {
+        margin: 0 0 20px;
+        color: #9aa1b4;
+        line-height: 1.5;
+      }
+      #boot-error button {
+        background: #7aa2ff;
+        color: #15181f;
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+    <script>
+      (function () {
+        var shown = false;
+        function showBootError() {
+          if (shown || window.__entrelinhasBooted) return;
+          shown = true;
+          var el = document.getElementById("boot-error");
+          if (!el) return;
+          el.hidden = false;
+          var btn = el.querySelector("button");
+          if (btn) {
+            btn.addEventListener("click", function () {
+              location.reload();
+            });
+            btn.focus();
+          }
+        }
+        // A failed import/parse or an exception during init surfaces promptly.
+        // Capture phase (true) also catches subresource load errors, which don't
+        // bubble. Ignore anything after a successful boot (e.g. a late image 404).
+        window.addEventListener(
+          "error",
+          function () {
+            if (!window.__entrelinhasBooted) showBootError();
+          },
+          true,
+        );
+        window.addEventListener("unhandledrejection", function () {
+          if (!window.__entrelinhasBooted) showBootError();
+        });
+        // Backstop for silent stalls (e.g. a hung fetch that never errors).
+        setTimeout(showBootError, 8000);
+      })();
+    </script>
+
     <link rel="stylesheet" href="./assets/styles.css" />
   </head>
   <body>
@@ -639,6 +726,15 @@
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <!-- Shown by the boot guard in <head> only if app.js never signals boot. -->
+    <div id="boot-error" hidden role="alert">
+      <div class="boot-error-box">
+        <h2>Algo deu errado</h2>
+        <p>Não foi possível carregar o jogo. Verifique sua conexão e tente novamente.</p>
+        <button type="button">Recarregar</button>
+      </div>
+    </div>
 
     <script type="module" src="./src/app.js"></script>
   </body>
