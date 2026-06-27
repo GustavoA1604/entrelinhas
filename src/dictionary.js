@@ -68,3 +68,17 @@ export function prefixFitsGaps(prefix, c, gaps) {
   const p = prefix + c;
   return gaps.some(([gLo, gHi]) => prefixFitsGap(p, gLo, gHi));
 }
+
+// Longest prefix of `draft` (0..length) that could still land inside the open
+// gap (gLo, gHi). Because a fitting longer prefix implies its shorter prefixes
+// also fit, the fitting lengths form a run 0..len, so we stop at the first miss.
+// A draft whose returned length is < draft.length overruns the gap from that
+// position on; both game modes use that to flag the offending squares red.
+export function fitPrefixLen(draft, gLo, gHi) {
+  let len = 0;
+  for (let L = 1; L <= draft.length; L++) {
+    if (prefixFitsGap(draft.slice(0, L), gLo, gHi)) len = L;
+    else break;
+  }
+  return len;
+}

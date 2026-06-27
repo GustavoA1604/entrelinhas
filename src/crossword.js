@@ -4,8 +4,8 @@ import {
   SENTINEL_LOW,
   SENTINEL_HIGH,
   pluralWords,
-  prefixFitsGap,
   prefixFitsGaps,
+  fitPrefixLen,
 } from "./dictionary.js";
 import { formatDate, seededRng } from "./daily.js";
 import { migrateLegacyDaily } from "./storage.js";
@@ -41,17 +41,6 @@ function shuffleInPlace(arr, rng) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
-}
-// Longest prefix of `draft` (0..length) that could still land inside the open
-// gap. Because a fitting longer prefix implies its shorter prefixes also fit,
-// the fitting lengths form a run 0..len, so we stop at the first miss.
-function fitPrefixLen(draft, gLo, gHi) {
-  let len = 0;
-  for (let L = 1; L <= draft.length; L++) {
-    if (prefixFitsGap(draft.slice(0, L), gLo, gHi)) len = L;
-    else break;
-  }
-  return len;
 }
 // Rough lexicographic rank of the first five letters, used to pick the gap
 // nearest to a draft whose first letter already fits no open gap.

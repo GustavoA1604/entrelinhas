@@ -6,6 +6,7 @@ import {
   distanceBetween,
   pluralWords,
   prefixFitsGaps,
+  fitPrefixLen,
 } from "./dictionary.js";
 import { formatDate, seededRng } from "./daily.js";
 import { migrateLegacyDaily } from "./storage.js";
@@ -126,12 +127,19 @@ export function initClassic(callbacks = {}) {
     row.innerHTML = "";
     const draft = state.draft;
     const known = knownLetters(state);
+    // First draft position (if any) where the typed prefix overruns the open
+    // range [currentLower, currentUpper]; squares from there on are flagged red,
+    // mirroring the crossword's out-of-bounds cells.
+    const fit = fitPrefixLen(draft, state.currentLower, state.currentUpper);
+    const redStart = draft.length > 0 && fit < draft.length ? fit : null;
     const cells = document.createElement("span");
     cells.className = "guess-cells";
     for (let i = 0; i < 5; i++) {
       const cell = document.createElement("span");
       if (draft[i]) {
-        cell.className = "guess-cell filled";
+        let cls = "guess-cell filled";
+        if (redStart != null && i >= redStart) cls += " cw-out-of-bounds";
+        cell.className = cls;
         cell.textContent = draft[i];
       } else if (known[i]) {
         cell.className = "guess-cell placeholder";
