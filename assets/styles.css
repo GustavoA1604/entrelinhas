@@ -727,6 +727,13 @@ footer {
   min-height: 100vh;
   min-height: 100dvh;
 }
+/* showView() focuses the active view's section (tabindex=-1) on navigation so
+   keyboard/screen-reader users land in it. That focus is purely for
+   announcement, not a user action, so suppress the outline around the whole
+   container; real controls inside still show their own focus ring. */
+.view:focus {
+  outline: none;
+}
 
 /* Game views (classic & crossword) lock to viewport height so the topbar stays
    pinned, the footer (letters + input) stays pinned, and only the middle scrolls. */

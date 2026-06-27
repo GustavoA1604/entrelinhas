@@ -149,7 +149,12 @@
   </head>
   <body>
     <!-- ====================== MENU VIEW ====================== -->
-    <section id="menu-view" class="view">
+    <!-- tabindex=-1 + aria-label: showView() moves focus to the active view's
+         section on navigation, so keyboard/screen-reader users land in the new
+         view (announced by its label) instead of being stranded on a now-hidden
+         control. The section, not its heading, is the target because the game
+         views' h1 is an interactive back button. -->
+    <section id="menu-view" class="view" tabindex="-1" aria-label="Menu principal">
       <header class="topbar">
         <h1><img src="./assets/logo-without-bg.png" alt="" class="logo" />Entrelinhas</h1>
         <div class="actions">
@@ -299,7 +304,7 @@
     </section>
 
     <!-- ====================== CLASSIC VIEW ====================== -->
-    <section id="classic-view" class="view" hidden>
+    <section id="classic-view" class="view" tabindex="-1" aria-label="Modo clássico" hidden>
       <header class="topbar">
         <h1 class="topbar-home" data-back role="button" tabindex="0" title="Voltar ao menu">
           <img src="./assets/logo-without-bg.png" alt="" class="logo" />Entrelinhas
@@ -388,7 +393,7 @@
     </section>
 
     <!-- ====================== CROSSWORD VIEW ====================== -->
-    <section id="crossword-view" class="view" hidden>
+    <section id="crossword-view" class="view" tabindex="-1" aria-label="Palavras cruzadas" hidden>
       <header class="topbar">
         <h1 class="topbar-home" data-back role="button" tabindex="0" title="Voltar ao menu">
           <img src="./assets/logo-without-bg.png" alt="" class="logo" />Entrelinhas Cruzadas

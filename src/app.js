@@ -50,8 +50,20 @@ const views = {
   crossword: document.getElementById("crossword-view"),
 };
 
+// Skip the focus move on the very first render so we don't steal focus on
+// initial page load (or when a deep link opens straight into a game).
+let viewFocusReady = false;
 function showView(name) {
   for (const [k, el] of Object.entries(views)) el.hidden = k !== name;
+  // Move keyboard focus into the newly shown view's section (which carries an
+  // aria-label). Without this, a keyboard or screen-reader user is left on a
+  // control that just became hidden, focus falls back to <body>, and they must
+  // Tab from the top of the document to reach the new view (and nothing
+  // announces that the screen changed). We focus the section, not its heading,
+  // because the game views' h1 is an interactive back button: focusing it would
+  // make Enter/Space double as "leave game".
+  if (viewFocusReady) views[name]?.focus();
+  viewFocusReady = true;
 }
 
 // localStorage prefix for a mode's daily entries.
