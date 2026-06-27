@@ -3,8 +3,8 @@ import { VALID } from "./data/valid.js";
 import {
   SENTINEL_LOW,
   SENTINEL_HIGH,
-  normalize,
   pluralWords,
+  prefixFitsGap,
   prefixFitsGaps,
 } from "./dictionary.js";
 import { formatDate, seededRng } from "./daily.js";
@@ -41,6 +41,27 @@ function shuffleInPlace(arr, rng) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+// Longest prefix of `draft` (0..length) that could still land inside the open
+// gap. Because a fitting longer prefix implies its shorter prefixes also fit,
+// the fitting lengths form a run 0..len, so we stop at the first miss.
+function fitPrefixLen(draft, gLo, gHi) {
+  let len = 0;
+  for (let L = 1; L <= draft.length; L++) {
+    if (prefixFitsGap(draft.slice(0, L), gLo, gHi)) len = L;
+    else break;
+  }
+  return len;
+}
+// Rough lexicographic rank of the first five letters, used to pick the gap
+// nearest to a draft whose first letter already fits no open gap.
+function wordRank(w) {
+  let r = 0;
+  for (let i = 0; i < 5; i++) {
+    const code = i < w.length ? Math.max(0, Math.min(26, w.charCodeAt(i) - 96)) : 0;
+    r = r * 27 + code;
+  }
+  return r;
 }
 
 // === Crossword generator ===
@@ -181,7 +202,6 @@ export function generateCrossword(seed) {
 export function initCrossword(callbacks = {}) {
   const grid = $("cw-grid");
   const list = $("cw-list");
-  const input = $("cw-guess-input");
   const alphaHint = $("cw-alpha-hint");
   const guessesLeftEl = $("cw-guesses-left");
   const solvedCountEl = $("cw-solved-count");
@@ -277,11 +297,121 @@ export function initCrossword(callbacks = {}) {
     }
   }
 
+  // Letters certain for every secret in a gap: the target words all sit
+  // alphabetically between the gap bounds, so the common prefix of those bounds
+  // is shared by all of them. (Sentinel bounds are "aaaaa"/"zzzzz", so they only
+  // contribute a letter in the rare case where it is genuinely forced.)
+  function knownGapLetters(gLo, gHi) {
+    const known = {};
+    for (let i = 0; i < 5 && gLo[i] === gHi[i]; i++) known[i] = gLo[i];
+    return known;
+  }
+
+  // A ????? group rendered as 5 square cells. While typing, the in-progress
+  // guess fills the squares of every group whose alphabetical range the prefix
+  // could still belong to; as more letters are typed fewer ranges match, so it
+  // narrows toward the single group the word will land in. When `show` is set
+  // but the draft overruns this group's range, squares from `redStart` onward
+  // are flagged out of bounds rather than the whole word vanishing. Squares the
+  // narrowed bounds have pinned down (`known`) show that letter as a faint
+  // placeholder until the player types over it.
+  function makeGroupRow(draft, show, redStart, count, known) {
+    const el = document.createElement("div");
+    el.className = "cw-row cw-group";
+    const cells = document.createElement("span");
+    cells.className = "guess-cells";
+    for (let i = 0; i < 5; i++) {
+      const ch = show ? draft[i] || "" : "";
+      const cell = document.createElement("span");
+      if (ch) {
+        let cls = "guess-cell filled";
+        if (redStart != null && i >= redStart) cls += " cw-out-of-bounds";
+        cell.className = cls;
+        cell.textContent = ch;
+      } else if (known && known[i]) {
+        cell.className = "guess-cell placeholder";
+        cell.textContent = known[i];
+      } else {
+        cell.className = "guess-cell";
+        cell.textContent = "";
+      }
+      cells.appendChild(cell);
+    }
+    el.appendChild(cells);
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = pluralSecretas(count);
+    el.appendChild(tag);
+    return el;
+  }
+
   function renderList(state) {
-    const { rows } = computeList(state);
+    const { rows, liveGaps } = computeList(state);
     const visible = pruneRows(rows);
     list.innerHTML = "";
+    const draft = state.done ? "" : state.draft;
+
+    // A draft equal to an already-guessed word sits exactly on a delimiter, so
+    // it fits no gap. Flag it only in the gaps that border that delimiter (never
+    // in the prefix-matching gaps elsewhere), as the whole word is invalid.
+    const isDuplicate = draft.length > 0 && state.guesses.some((g) => g.word === draft);
+
+    // How many leading letters of the draft still fit each open gap.
+    const gapFit = liveGaps.map(([lo, hi]) => fitPrefixLen(draft, lo, hi));
+    // When the full draft lands cleanly in at least one gap, it is shown only
+    // there: the out-of-bounds fallbacks below apply only when nothing fits.
+    const anyFullFit = draft.length > 0 && gapFit.some((f) => f === draft.length);
+    const anyFirstLetterFits = draft.length > 0 && gapFit.some((f) => f >= 1);
+    // If the very first letter already fits no open gap, the draft is shown only
+    // in the single nearest gap, with the whole word flagged out of bounds.
+    let fallbackGap = -1;
+    if (draft.length > 0 && !anyFullFit && !anyFirstLetterFits && liveGaps.length > 0) {
+      const dr = wordRank(draft);
+      let best = Infinity;
+      for (let k = 0; k < liveGaps.length; k++) {
+        const lr = wordRank(liveGaps[k][0]),
+          hr = wordRank(liveGaps[k][1]);
+        const d = dr < lr ? lr - dr : dr > hr ? dr - hr : 0;
+        if (d < best) {
+          best = d;
+          fallbackGap = k;
+        }
+      }
+    }
+
+    // Group rows survive pruning in order, so the k-th group maps to liveGaps[k].
+    let groupIdx = 0;
     for (const r of visible) {
+      if (r.kind === "group") {
+        const k = groupIdx++;
+        const fitLen = gapFit[k];
+        let show = false;
+        let redStart = null;
+        if (draft.length > 0) {
+          if (isDuplicate) {
+            // Repeated guess: flag it red only in the gaps it borders.
+            const [gLo, gHi] = liveGaps[k];
+            if (gLo === draft || gHi === draft) {
+              show = true;
+              redStart = 0;
+            }
+          } else if (fitLen === draft.length) {
+            // The whole draft lands here cleanly.
+            show = true;
+          } else if (!anyFullFit && fitLen >= 1) {
+            // No clean home anywhere; show the overrun here, flagged red.
+            show = true;
+            redStart = fitLen;
+          } else if (!anyFullFit && k === fallbackGap) {
+            // First letter is already out of limits: park it in the nearest gap.
+            show = true;
+            redStart = 0;
+          }
+        }
+        const known = knownGapLetters(liveGaps[k][0], liveGaps[k][1]);
+        list.appendChild(makeGroupRow(draft, show, redStart, r.count, known));
+        continue;
+      }
       const el = document.createElement("div");
       if (r.kind === "sentinel-low") {
         el.className = "cw-row cw-sentinel";
@@ -289,9 +419,6 @@ export function initCrossword(callbacks = {}) {
       } else if (r.kind === "sentinel-high") {
         el.className = "cw-row cw-sentinel";
         el.innerHTML = `<span class="word">${SENTINEL_HIGH}</span><span class="tag">?? palavras</span>`;
-      } else if (r.kind === "group") {
-        el.className = "cw-row cw-group";
-        el.innerHTML = `<span class="word">?????</span><span class="tag">${pluralSecretas(r.count)}</span>`;
       } else if (r.kind === "guess") {
         el.className = "cw-row cw-guess" + (r.solved ? " cw-guess-solved" : "");
         const tags = [];
@@ -307,7 +434,7 @@ export function initCrossword(callbacks = {}) {
   }
 
   function renderAlphabet(state) {
-    const prefix = normalize(input.value);
+    const prefix = state.draft;
     const { liveGaps } = computeList(state);
     alphaHint.innerHTML = "";
     for (let i = 0; i < 26; i++) {
@@ -391,9 +518,7 @@ export function initCrossword(callbacks = {}) {
     },
     callbacks,
     els: {
-      input,
-      form: $("cw-guess-form"),
-      guessBtn: $("cw-guess-btn"),
+      keyboard: $("cw-keyboard"),
       hintBtn: $("cw-hint-btn"),
       backBtn: $("cw-back-btn"),
       guessesTotal: $("cw-guesses-total"),
@@ -541,12 +666,6 @@ export function initCrossword(callbacks = {}) {
           oy = Number(cell.dataset.oy);
         if (!Number.isFinite(ox) || !Number.isFinite(oy)) return;
         revealCellAt(api.state, api, ox, oy);
-      });
-      // Tapping a secret "?????" row in the list focuses the guess input (and, on
-      // mobile, pops the keyboard, since this runs inside a user gesture).
-      list.addEventListener("click", (e) => {
-        if (input.disabled) return;
-        if (e.target.closest(".cw-group")) input.focus({ preventScroll: true });
       });
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && api.state.selectingTip) stopSelecting(api.state, api);

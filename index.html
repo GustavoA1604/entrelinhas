@@ -48,7 +48,8 @@
       try {
         var t = JSON.parse(localStorage.getItem("entrelinhas:theme") || "null");
         if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
-        var light = t === "light" || (t !== "dark" && matchMedia("(prefers-color-scheme: light)").matches);
+        var light =
+          t === "light" || (t !== "dark" && matchMedia("(prefers-color-scheme: light)").matches);
         var meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.content = light ? "#f7f8fb" : "#1f2330";
       } catch (e) {}
@@ -270,23 +271,7 @@
 
         <div id="hints" class="hints" aria-live="polite"></div>
 
-        <form id="guess-form" autocomplete="off" novalidate>
-          <input
-            id="guess-input"
-            type="text"
-            inputmode="text"
-            enterkeyhint="send"
-            maxlength="5"
-            pattern="[A-Za-zÀ-ÿ]{5}"
-            placeholder="palavra de 5 letras"
-            spellcheck="false"
-            autocapitalize="none"
-            autocorrect="off"
-            required
-          />
-          <label for="guess-input" id="guess-btn" role="button" tabindex="-1">Tentar</label>
-          <button type="submit" hidden aria-hidden="true"></button>
-        </form>
+        <div id="keyboard" class="keyboard" aria-label="Teclado"></div>
       </footer>
 
       <dialog id="end-dialog">
@@ -388,23 +373,7 @@
 
         <div id="cw-hints" class="hints" aria-live="polite"></div>
 
-        <form id="cw-guess-form" autocomplete="off" novalidate>
-          <input
-            id="cw-guess-input"
-            type="text"
-            inputmode="text"
-            enterkeyhint="send"
-            maxlength="5"
-            pattern="[A-Za-zÀ-ÿ]{5}"
-            placeholder="palavra de 5 letras"
-            spellcheck="false"
-            autocapitalize="none"
-            autocorrect="off"
-            required
-          />
-          <label for="cw-guess-input" id="cw-guess-btn" role="button" tabindex="-1">Tentar</label>
-          <button type="submit" hidden aria-hidden="true"></button>
-        </form>
+        <div id="cw-keyboard" class="keyboard" aria-label="Teclado"></div>
       </footer>
 
       <dialog id="cw-end-dialog">
@@ -452,9 +421,7 @@
         <div class="settings-row">
           <span class="settings-label">Tema</span>
           <div class="segmented" role="radiogroup" aria-label="Tema">
-            <label
-              ><input type="radio" name="theme" value="system" /><span>Sistema</span></label
-            >
+            <label><input type="radio" name="theme" value="system" /><span>Sistema</span></label>
             <label><input type="radio" name="theme" value="light" /><span>Claro</span></label>
             <label><input type="radio" name="theme" value="dark" /><span>Escuro</span></label>
           </div>
@@ -514,7 +481,9 @@
           <div class="stat"><span class="stat-num" id="stat-played">0</span>Jogadas</div>
           <div class="stat"><span class="stat-num" id="stat-winrate">0</span>% vitórias</div>
           <div class="stat"><span class="stat-num" id="stat-streak">0</span>Sequência</div>
-          <div class="stat"><span class="stat-num" id="stat-maxstreak">0</span>Melhor sequência</div>
+          <div class="stat">
+            <span class="stat-num" id="stat-maxstreak">0</span>Melhor sequência
+          </div>
         </div>
 
         <h3 class="stats-section-title">Distribuição de tentativas</h3>

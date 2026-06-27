@@ -49,17 +49,22 @@ export function pluralWords(n) {
   return n === 1 ? "1 palavra" : `${n.toLocaleString("pt-BR")} palavras`;
 }
 
+// Could a 5-letter word whose first letters are exactly `prefix` still fall
+// inside the open gap `(gLo, gHi)`? Compares the prefix's lexicographic span
+// (padded with a..z) against the exclusive bounds.
+export function prefixFitsGap(prefix, gLo, gHi) {
+  const k = prefix.length;
+  if (k > 5) return false;
+  const lo = prefix + "a".repeat(5 - k);
+  const hi = prefix + "z".repeat(5 - k);
+  return hi > gLo && lo < gHi;
+}
+
 // Could a 5-letter word starting with `prefix + c` still fall inside any of the
 // open `gaps` (each an exclusive [lo, hi] bound pair)? Powers the alphabet hint
 // that greys out letters which can no longer lead to a valid guess.
 export function prefixFitsGaps(prefix, c, gaps) {
-  const k = prefix.length;
-  if (k >= 5) return false;
-  const pad = 5 - k - 1;
-  const lo = prefix + c + "a".repeat(pad);
-  const hi = prefix + c + "z".repeat(pad);
-  for (const [gLo, gHi] of gaps) {
-    if (hi > gLo && lo < gHi) return true;
-  }
-  return false;
+  if (prefix.length >= 5) return false;
+  const p = prefix + c;
+  return gaps.some(([gLo, gHi]) => prefixFitsGap(p, gLo, gHi));
 }

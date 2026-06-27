@@ -46,6 +46,10 @@ import { readJSON, writeJSON } from "./storage.js";
 import { computeHintState } from "./hint.js";
 import { buildShareUrl } from "./routes.js";
 
+// On-screen keyboard layout (QWERTY). The last row is framed by the two action
+// keys: Enter (submit) and Backspace (delete).
+const KEYBOARD_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
+
 export function createGameController(spec) {
   const {
     mode,
@@ -77,6 +81,7 @@ export function createGameController(spec) {
     tipsRevealed: [],
     lastGuessAt: Date.now(),
     tipStartRange: null,
+    draft: "", // the in-progress guess; rendered into the secret slot, not persisted
   };
   spec.initState(state);
 
@@ -90,14 +95,22 @@ export function createGameController(spec) {
   function setMessage(text, kind = "") {
     showToast(text || "", kind);
   }
-  function focusInput() {
-    els.input.focus({ preventScroll: true });
-  }
+  // The on-screen keyboard is always visible and a document-level keydown
+  // listener captures hardware keys, so there is no text field to focus. Kept as
+  // a no-op since several call sites (and the returned `focus()`) still call it.
+  function focusInput() {}
   function currentRange() {
     return spec.currentRange(state);
   }
+  // The on-screen Enter key, captured when the keyboard is built. Submitting only
+  // makes sense with a full 5-letter guess, so it stays disabled until then.
+  let enterKey = null;
+  function updateEnterKey() {
+    if (enterKey) enterKey.disabled = state.done || state.draft.length !== 5;
+  }
   function renderBoard(justAdded) {
     spec.renderBoard(state, justAdded);
+    updateEnterKey();
   }
 
   // Operations the mode hooks may need from the shell.
@@ -190,6 +203,79 @@ export function createGameController(spec) {
     hintBtn.title = ready ? "Dica disponível" : `Próxima dica: ${reasons.join(" · ")}`;
   }
 
+  // --- Input controller (on-screen keyboard + hardware keys) ---
+  // The current guess lives in state.draft and is rendered into the secret slot
+  // by the mode (classic target squares / crossword draft row).
+  let overflowAttempts = 0;
+  function setDraft(next) {
+    state.draft = normalize(next).slice(0, 5);
+    renderBoard();
+    spec.renderAlphabet(state);
+  }
+  function addLetter(ch) {
+    if (state.done) return;
+    if (state.draft.length >= 5) {
+      // Extra keystrokes beyond five are dropped silently; nudge after a few so
+      // it isn't a mystery why typing "stopped working".
+      if (++overflowAttempts >= 3) {
+        setMessage("Use 5 letras (a-z) em sua tentativa.", "error");
+        overflowAttempts = 0;
+      }
+      return;
+    }
+    overflowAttempts = 0;
+    setDraft(state.draft + ch);
+  }
+  function backspace() {
+    if (state.done) return;
+    overflowAttempts = 0;
+    if (state.draft) setDraft(state.draft.slice(0, -1));
+  }
+  function submitDraft() {
+    overflowAttempts = 0;
+    submitGuess(state.draft);
+  }
+  function setKeyboardDisabled(disabled) {
+    if (els.keyboard) els.keyboard.classList.toggle("kb-disabled", disabled);
+  }
+
+  function buildKeyboard() {
+    const kb = els.keyboard;
+    if (!kb) return;
+    kb.innerHTML = "";
+    const makeKey = (label, { value, action, wide } = {}) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "key" + (wide ? " key-wide" : "");
+      btn.textContent = label;
+      if (action) btn.setAttribute("aria-label", action === "enter" ? "Enviar" : "Apagar");
+      // Fire on press (pointerdown), not release (click): on mobile, click events
+      // are serialized/suppressed while another finger is still down, so fast
+      // multi-tap typing stalled until the previous key lifted. pointerdown fires
+      // per touch point immediately. The synthetic click that follows has no
+      // listener, so it's harmless.
+      btn.addEventListener("pointerdown", () => {
+        if (action === "enter") submitDraft();
+        else if (action === "backspace") backspace();
+        else addLetter(value);
+      });
+      return btn;
+    };
+    KEYBOARD_ROWS.forEach((row, i) => {
+      const rowEl = document.createElement("div");
+      rowEl.className = "key-row";
+      if (i === KEYBOARD_ROWS.length - 1) {
+        enterKey = makeKey("⏎", { action: "enter", wide: true });
+        rowEl.appendChild(enterKey);
+      }
+      for (const ch of row) rowEl.appendChild(makeKey(ch, { value: ch }));
+      if (i === KEYBOARD_ROWS.length - 1)
+        rowEl.appendChild(makeKey("⌫", { action: "backspace", wide: true }));
+      kb.appendChild(rowEl);
+    });
+    updateEnterKey();
+  }
+
   // --- Game flow ---
   function submitGuess(raw) {
     if (state.done) return;
@@ -208,14 +294,14 @@ export function createGameController(spec) {
       return;
     }
 
-    els.input.value = "";
+    state.draft = "";
     setMessage(result.message || "", result.messageKind || "");
     saveDaily();
     renderBoard(word);
     updateHintButton();
 
     if (state.done) {
-      els.input.disabled = true;
+      setKeyboardDisabled(true);
       // Fire once, on the live transition to finished (not on restore), so the
       // caller can record stats for games that aren't saved per-day (random).
       onGameEnd &&
@@ -240,6 +326,7 @@ export function createGameController(spec) {
     state.tipsRevealed = [];
     state.lastGuessAt = Date.now();
     state.tipStartRange = null;
+    state.draft = "";
     spec.resetState(state);
 
     let restored = false;
@@ -264,8 +351,8 @@ export function createGameController(spec) {
     if (state.tipStartRange == null) state.tipStartRange = currentRange();
 
     setMessage("");
-    els.input.value = "";
-    els.input.disabled = state.done;
+    state.draft = "";
+    setKeyboardDisabled(state.done);
     renderBoard();
     updateHintButton();
     onRoute && onRoute(descriptor());
@@ -307,32 +394,27 @@ export function createGameController(spec) {
   }
 
   // --- Generic wiring (shared by every mode) ---
-  els.form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    submitGuess(els.input.value);
-  });
-  els.guessBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    if (!els.input.disabled) els.form.requestSubmit();
-  });
-  // The input is capped at 5 letters, so extra keystrokes are silently
-  // dropped. Nudge after a few consecutive over-the-limit presses so it isn't
-  // a mystery why typing "stopped working". The counter resets whenever the
-  // value actually changes (see the input listener below).
-  let overflowAttempts = 0;
-  els.input.addEventListener("keydown", (e) => {
-    if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
-    const noSelection = els.input.selectionStart === els.input.selectionEnd;
-    if (els.input.value.length >= 5 && noSelection && ++overflowAttempts >= 3) {
-      setMessage("Use 5 letras (a-z) em sua tentativa.", "error");
-      overflowAttempts = 0;
+  buildKeyboard();
+  // Hardware keyboard support: a single document-level listener so desktop
+  // players can type without any focused text field (which would pop the OS
+  // keyboard on mobile). Ignored while another view, a dialog, or an editable
+  // field is active, or once the game is over.
+  document.addEventListener("keydown", (e) => {
+    if (els.view.hidden || state.done) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (document.querySelector("dialog[open]")) return;
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitDraft();
+    } else if (e.key === "Backspace") {
+      e.preventDefault();
+      backspace();
+    } else if (/^[a-zà-ÿ]$/i.test(e.key)) {
+      e.preventDefault();
+      addLetter(normalize(e.key));
     }
-  });
-  els.input.addEventListener("input", () => {
-    overflowAttempts = 0;
-    const cleaned = normalize(els.input.value).slice(0, 5);
-    if (cleaned !== els.input.value) els.input.value = cleaned;
-    spec.renderAlphabet(state);
   });
   els.hintBtn.addEventListener("click", () => {
     if (state.done) return;

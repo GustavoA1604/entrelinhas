@@ -18,8 +18,8 @@ test("classic: a valid guess is accepted and consumes a turn", async ({ page }) 
   await expect(page.locator("#classic-view")).toBeVisible();
   await expect(page.locator("#guesses-left")).toHaveText("15");
 
-  await page.locator("#guess-input").fill("porta");
-  await page.locator("#guess-input").press("Enter");
+  await page.keyboard.type("porta");
+  await page.keyboard.press("Enter");
 
   // Either the guess narrowed the range (14 left) or it happened to be the
   // answer (game ends, still 14 used); either way the counter moved.
@@ -28,8 +28,8 @@ test("classic: a valid guess is accepted and consumes a turn", async ({ page }) 
 
 test("classic: invalid input is rejected with a toast and no turn lost", async ({ page }) => {
   await page.locator('[data-mode="classic-daily"]').click();
-  await page.locator("#guess-input").fill("abc");
-  await page.locator("#guess-input").press("Enter");
+  await page.keyboard.type("abc");
+  await page.keyboard.press("Enter");
 
   await expect(page.locator("#toast")).toBeVisible();
   await expect(page.locator("#guesses-left")).toHaveText("15");
@@ -40,6 +40,32 @@ test("crossword: board renders a grid of cells", async ({ page }) => {
   await expect(page.locator("#crossword-view")).toBeVisible();
   await expect(page.locator("#cw-grid .cw-cell").first()).toBeVisible();
   await expect(page.locator("#cw-guesses-left")).toHaveText("50");
+});
+
+test("on-screen keyboard: tapping keys fills the secret squares", async ({ page }) => {
+  await page.locator('[data-mode="classic-daily"]').click();
+  await expect(page.locator("#classic-view")).toBeVisible();
+
+  await page.locator("#keyboard .key", { hasText: /^p$/ }).click();
+  await page.locator("#keyboard .key", { hasText: /^a$/ }).click();
+  await expect(page.locator("#target-row .guess-cell.filled")).toHaveCount(2);
+
+  // The wide Backspace key removes the last letter.
+  await page.locator('#keyboard .key[aria-label="Apagar"]').click();
+  await expect(page.locator("#target-row .guess-cell.filled")).toHaveCount(1);
+});
+
+test("crossword: typing fills the ????? group squares", async ({ page }) => {
+  await page.locator('[data-mode="crossword-daily"]').click();
+  await expect(page.locator("#crossword-view")).toBeVisible();
+  // At the start there is a single all-encompassing group, shown as squares.
+  await expect(page.locator("#cw-list .cw-group .guess-cells")).not.toHaveCount(0);
+
+  await page.keyboard.type("li");
+  await expect(page.locator("#cw-list .cw-group .guess-cell.filled").first()).toHaveText("l");
+  await expect(
+    page.locator("#cw-list .cw-group", { has: page.locator(".guess-cell.filled") }).first(),
+  ).toContainText("secreta");
 });
 
 test("navigation: back button returns to the menu", async ({ page }) => {
@@ -112,10 +138,12 @@ test("leaving an in-progress random game asks to confirm and shows the code", as
   await expect(page.locator("#classic-view")).toBeVisible();
   const seed = (await page.locator("#puzzle-date").textContent()).replace("código: ", "").trim();
 
-  await page.locator("#guess-input").fill("porta");
-  await page.locator("#guess-input").press("Enter");
+  await page.keyboard.type("porta");
+  await page.keyboard.press("Enter");
 
-  await page.locator("#classic-view button[data-back]").click();
+  // While a game is in progress the #back-btn is swapped for the hint button,
+  // so the leave trigger is the title/logo (also a [data-back] element).
+  await page.locator("#classic-view h1.topbar-home").click();
   await expect(page.locator("#exit-dialog")).toBeVisible();
   await expect(page.locator("#exit-code")).toHaveText(seed);
 
@@ -125,7 +153,7 @@ test("leaving an in-progress random game asks to confirm and shows the code", as
   await expect(page.locator("#classic-view")).toBeVisible();
 
   // Confirming leaves to the menu.
-  await page.locator("#classic-view button[data-back]").click();
+  await page.locator("#classic-view h1.topbar-home").click();
   await page.locator("#exit-confirm").click();
   await expect(page.locator("#menu-view")).toBeVisible();
 });
@@ -137,10 +165,10 @@ test("leaving an in-progress daily game hides the code/link row", async ({ page 
   await page.locator('[data-mode="classic-daily"]').click();
   await expect(page.locator("#classic-view")).toBeVisible();
 
-  await page.locator("#guess-input").fill("porta");
-  await page.locator("#guess-input").press("Enter");
+  await page.keyboard.type("porta");
+  await page.keyboard.press("Enter");
 
-  await page.locator("#classic-view button[data-back]").click();
+  await page.locator("#classic-view h1.topbar-home").click();
   await expect(page.locator("#exit-dialog")).toBeVisible();
   await expect(page.locator("#exit-code-row")).toBeHidden();
 });
@@ -148,8 +176,8 @@ test("leaving an in-progress daily game hides the code/link row", async ({ page 
 test("OS back button on an in-progress game triggers the confirm dialog", async ({ page }) => {
   await page.locator('[data-mode="classic-random"]').click();
   await expect(page.locator("#classic-view")).toBeVisible();
-  await page.locator("#guess-input").fill("porta");
-  await page.locator("#guess-input").press("Enter");
+  await page.keyboard.type("porta");
+  await page.keyboard.press("Enter");
 
   // Browser/OS back: intercepted, stays in the game, prompts.
   await page.goBack();

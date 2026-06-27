@@ -3,7 +3,13 @@ import assert from "node:assert/strict";
 import { computeModeStats, computeTopWords } from "../src/stats.js";
 
 // Helpers to build daily entries newest-first, the order listDateKeys returns.
-const win = (n) => ({ saved: { done: true, won: true, guesses: Array.from({ length: n }, (_, i) => ({ word: `w${i}` })) } });
+const win = (n) => ({
+  saved: {
+    done: true,
+    won: true,
+    guesses: Array.from({ length: n }, (_, i) => ({ word: `w${i}` })),
+  },
+});
 const loss = () => ({ saved: { done: true, won: false, guesses: [{ word: "x" }] } });
 const inProgress = () => ({ saved: { done: false, won: false, guesses: [{ word: "y" }] } });
 const unplayed = () => ({ saved: null });

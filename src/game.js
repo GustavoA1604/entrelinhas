@@ -3,7 +3,6 @@ import { VALID } from "./data/valid.js";
 import {
   SENTINEL_LOW,
   SENTINEL_HIGH,
-  normalize,
   distanceBetween,
   pluralWords,
   prefixFitsGaps,
@@ -40,7 +39,6 @@ export function initClassic(callbacks = {}) {
   const targetRow = $("target-row");
   const upperRow = $("upper-row");
   const alphaHint = $("alpha-hint");
-  const input = $("guess-input");
   const guessesLeft = $("guesses-left");
   const hintsEl = $("hints");
 
@@ -69,7 +67,7 @@ export function initClassic(callbacks = {}) {
   }
 
   function renderAlphabet(state) {
-    const prefix = normalize(input.value);
+    const prefix = state.draft;
     alphaHint.innerHTML = "";
     for (let i = 0; i < 26; i++) {
       const c = String.fromCharCode(97 + i);
@@ -82,8 +80,8 @@ export function initClassic(callbacks = {}) {
   }
 
   function tipText(state, id) {
-    if (id === "last") return `Dica: a palavra termina com "${state.target[4]}".`;
-    if (id === "secondLast") return `Dica: a penúltima letra é "${state.target[3]}".`;
+    if (id === "last") return `Dica: a palavra termina com "${state.target[4].toUpperCase()}".`;
+    if (id === "secondLast") return `Dica: a penúltima letra é "${state.target[3].toUpperCase()}".`;
     return "Dica.";
   }
   function renderHints(state) {
@@ -94,6 +92,61 @@ export function initClassic(callbacks = {}) {
       div.textContent = tipText(state, t.id);
       hintsEl.appendChild(div);
     }
+  }
+
+  // Letters revealed by used tips, keyed by their position in the target word.
+  function tipLetters(state) {
+    const out = {};
+    for (const t of state.tipsRevealed) {
+      if (t.id === "last") out[4] = state.target[4];
+      else if (t.id === "secondLast") out[3] = state.target[3];
+    }
+    return out;
+  }
+
+  // Positions whose letter is already certain: the ones a tip revealed, plus any
+  // shared by the current lower and upper bounds. The target sits alphabetically
+  // between those two words, so every position in their common prefix must match
+  // the target too. (Sentinel bounds are "aaaaa"/"zzzzz", so they only contribute
+  // a letter in the rare case where it is genuinely forced.)
+  function knownLetters(state) {
+    const known = tipLetters(state);
+    const lo = state.currentLower;
+    const hi = state.currentUpper;
+    for (let i = 0; i < 5 && lo[i] === hi[i]; i++) known[i] = lo[i];
+    return known;
+  }
+
+  // The secret slot: 5 square cells (matching the crossword board) that fill in
+  // with the in-progress guess while the game is live. Positions we already know
+  // for sure (from a tip or from the narrowed bounds) show that letter as a faint
+  // placeholder until the player types over it.
+  function makeTargetCells(row, state) {
+    row.className = "row target target-hidden";
+    row.innerHTML = "";
+    const draft = state.draft;
+    const known = knownLetters(state);
+    const cells = document.createElement("span");
+    cells.className = "guess-cells";
+    for (let i = 0; i < 5; i++) {
+      const cell = document.createElement("span");
+      if (draft[i]) {
+        cell.className = "guess-cell filled";
+        cell.textContent = draft[i];
+      } else if (known[i]) {
+        cell.className = "guess-cell placeholder";
+        cell.textContent = known[i];
+      } else {
+        cell.className = "guess-cell";
+        cell.textContent = "";
+      }
+      cells.appendChild(cell);
+    }
+    row.appendChild(cells);
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = "secreta";
+    row.appendChild(tag);
   }
 
   function renderBoard(state, justAddedWord = null) {
@@ -109,7 +162,7 @@ export function initClassic(callbacks = {}) {
     } else if (state.done) {
       makeRowContent(targetRow, state.target, "target target-revealed-loss", "era esta");
     } else {
-      makeRowContent(targetRow, "?????", "target target-hidden", "secreta");
+      makeTargetCells(targetRow, state);
     }
 
     if (state.currentUpper === SENTINEL_HIGH) {
@@ -145,8 +198,8 @@ export function initClassic(callbacks = {}) {
     const fmt = (x) => x.toLocaleString("pt-BR");
     const tipLine = (id) => {
       if (!includeWords) return "💡 Dica usada";
-      if (id === "last") return `💡 Dica: última letra "${state.target[4]}"`;
-      if (id === "secondLast") return `💡 Dica: penúltima letra "${state.target[3]}"`;
+      if (id === "last") return `💡 Dica: última letra "${state.target[4].toUpperCase()}"`;
+      if (id === "secondLast") return `💡 Dica: penúltima letra "${state.target[3].toUpperCase()}"`;
       return "💡 Dica";
     };
     const emitTipsAfter = (k) => {
@@ -195,9 +248,7 @@ export function initClassic(callbacks = {}) {
     },
     callbacks,
     els: {
-      input,
-      form: $("guess-form"),
-      guessBtn: $("guess-btn"),
+      keyboard: $("keyboard"),
       hintBtn: $("hint-btn"),
       backBtn: $("back-btn"),
       guessesTotal: $("guesses-total"),
@@ -278,7 +329,9 @@ export function initClassic(callbacks = {}) {
       const next = HINT_TIPS[state.tipsRevealed.length];
       state.tipsRevealed.push({ id: next.id, afterGuess: state.guesses.length });
       state.tipStartRange = api.currentRange();
-      renderHints(state);
+      // Re-render the whole board so the revealed letter shows in the target
+      // square placeholder, not just the hint banner.
+      api.render();
       api.updateHintButton();
       api.save();
     },
@@ -305,14 +358,6 @@ export function initClassic(callbacks = {}) {
       // The link reopens this exact puzzle (same date, or same random seed).
       const body = buildSummaryLines(state, { includeWords: false }).join("\n");
       return `${header} ${score}\n${body}\n\nJogue este: ${shareUrl}`;
-    },
-
-    wire() {
-      // Tapping the secret "?????" row focuses the guess input (and, on mobile,
-      // pops the keyboard, since this runs inside a user gesture).
-      targetRow.addEventListener("click", () => {
-        if (!input.disabled) input.focus({ preventScroll: true });
-      });
     },
   });
 }

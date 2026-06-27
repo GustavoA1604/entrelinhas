@@ -128,8 +128,7 @@ body {
   display: none;
 }
 
-button,
-#guess-btn {
+button {
   font: inherit;
   color: var(--fg);
   background: var(--accent);
@@ -139,26 +138,15 @@ button,
   cursor: pointer;
   transition: filter 120ms ease;
 }
-button:hover,
-#guess-btn:hover {
+button:hover {
   filter: brightness(1.1);
 }
-button:active,
-#guess-btn:active {
+button:active {
   transform: translateY(1px);
 }
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-#guess-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  font-weight: 600;
 }
 
 button.ghost {
@@ -308,26 +296,102 @@ main {
   text-decoration: line-through;
 }
 
-#guess-form {
+/* In-progress guess shown as square cells (classic target slot + crossword
+   draft row), matching the crossword board's .cw-cell look. */
+.guess-cells {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  justify-content: center;
 }
-#guess-input {
-  flex: 1;
-  padding: 12px 14px;
-  font: inherit;
+.guess-cell {
+  width: 2em;
+  height: 2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
   font-family: var(--mono);
+  font-weight: 600;
   font-size: 1.1rem;
-  letter-spacing: 0.15em;
-  text-transform: lowercase;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+/* Faint "?" placeholder behind empty squares, like greyed-out hint text. */
+.guess-cell:not(.filled):not(.placeholder)::before {
+  content: "?";
+  color: color-mix(in srgb, var(--fg) 38%, var(--bg));
+}
+/* A letter we already know for sure (from a tip or the narrowed bounds), shown
+   muted until the player types over it but kept legible. */
+.guess-cell.placeholder {
+  color: color-mix(in srgb, var(--fg) 65%, var(--bg));
+}
+.guess-cell.filled {
+  border-color: var(--accent);
+}
+/* A draft letter that falls outside the open range it is shown in. */
+.guess-cell.cw-out-of-bounds {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+/* On-screen keyboard */
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  touch-action: manipulation;
+}
+.key-row {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  width: 100%;
+}
+.key {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 42px;
+  height: 48px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--bg-2);
   color: var(--fg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  outline: none;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 100ms ease;
 }
-#guess-input:focus {
-  border-color: var(--accent);
+.key:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-2));
+}
+.key:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.key:active {
+  background: color-mix(in srgb, var(--accent) 32%, var(--bg-2));
+}
+.key-wide {
+  flex-grow: 1.5;
+  max-width: 64px;
+  font-size: 1.2rem;
+}
+.keyboard.kb-disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .message {
@@ -1130,7 +1194,7 @@ button.hint-btn[aria-disabled="true"] {
   font-weight: 600;
   font-size: calc(var(--cw-cell) * 0.5);
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--accent);
   border-radius: 4px;
   text-transform: uppercase;
   color: var(--fg);
@@ -1203,7 +1267,6 @@ button.hint-btn[aria-disabled="true"] {
   color: var(--muted);
   background: transparent;
   border-style: dashed;
-  cursor: pointer;
 }
 .cw-row.cw-guess {
   border-color: var(--accent);
@@ -1222,37 +1285,6 @@ button.hint-btn[aria-disabled="true"] {
   font-weight: 700;
 }
 
-#cw-guess-form {
-  display: flex;
-  gap: 8px;
-}
-#cw-guess-input {
-  flex: 1;
-  padding: 12px 14px;
-  font: inherit;
-  font-family: var(--mono);
-  font-size: 1.1rem;
-  letter-spacing: 0.15em;
-  text-transform: lowercase;
-  background: var(--bg-2);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  outline: none;
-}
-#cw-guess-input:focus {
-  border-color: var(--accent);
-}
-#cw-guess-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  font-weight: 600;
-}
-
 /* Compact layout for short viewports (typically phones with the soft
    keyboard open) so the whole board, alphabet and input fit without
    scrolling. */
@@ -1266,8 +1298,7 @@ button.hint-btn[aria-disabled="true"] {
   .topbar h1 {
     font-size: 1.05rem;
   }
-  button,
-  #guess-btn {
+  button {
     padding: 7px 10px;
   }
   main {
@@ -1298,10 +1329,14 @@ button.hint-btn[aria-disabled="true"] {
     padding: 0 4px;
     font-size: 0.82rem;
   }
-  #guess-input {
-    padding: 8px 10px;
+  .key {
+    height: 40px;
+    font-size: 0.95rem;
+  }
+  .guess-cell {
+    width: 1.7em;
+    height: 1.7em;
     font-size: 1rem;
-    letter-spacing: 0.1em;
   }
   .message {
     font-size: 0.85rem;
@@ -1335,12 +1370,6 @@ button.hint-btn[aria-disabled="true"] {
   .cw-row .tags {
     font-size: 0.7rem;
   }
-  #cw-guess-input {
-    padding: 8px 10px;
-    font-size: 1rem;
-    letter-spacing: 0.1em;
-  }
-
   .input-area {
     padding-top: 6px;
     padding-bottom: 6px;
