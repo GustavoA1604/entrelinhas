@@ -568,6 +568,52 @@ footer {
   border: none;
   border-top: 1px solid var(--border);
 }
+
+/* In-game help buttons ("Como jogar?" + "Palavra não aceita?"), sitting where
+   the inline how-to used to be. They share a row and split the width evenly. */
+.game-help-actions {
+  display: flex;
+  gap: 8px;
+}
+.game-help-actions > button {
+  flex: 1;
+}
+
+/* "Como jogar?" dialog: roomier than the default dialog on desktop so the board
+   mockups have space; the base dialog's width:calc(100% - 24px) still caps it on
+   narrow screens. */
+#howto-dialog {
+  max-width: 640px;
+}
+
+/* Reuses the how-to body markup. Drop the inline panel's horizontal padding (the
+   dialog already pads) and let the long rules scroll inside the body so the title
+   and close button stay pinned. Style the scrollbar to match the theme instead of
+   the OS default. */
+#howto-dialog .howto-body {
+  padding: 4px 0 0;
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+#howto-dialog .howto-body::-webkit-scrollbar {
+  width: 10px;
+}
+#howto-dialog .howto-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+#howto-dialog .howto-body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 6px;
+  /* Inset the thumb so it reads as a slim pill rather than a full-width bar. */
+  border: 2px solid var(--bg-2);
+  background-clip: padding-box;
+}
+#howto-dialog .howto-body::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+  background-clip: padding-box;
+}
 .howto code {
   background: var(--bg);
   padding: 1px 6px;
@@ -856,6 +902,61 @@ footer {
   text-underline-offset: 2px;
 }
 .link-chip:hover {
+  color: var(--fg);
+}
+
+/* Footer "Feedback e sugestões" button, styled as an inline link. */
+.footer-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.footer-link:hover {
+  color: var(--fg);
+  filter: none;
+}
+
+/* Feedback dialog: a little wider than the rest to give the embed room. */
+#feedback-dialog {
+  max-width: 520px;
+}
+.feedback-desc {
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin-top: 0;
+}
+.feedback-frame-wrap {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  /* The Tally form is designed for a light surface and its text color is fixed
+     by Tally (cross-origin, so our CSS can't reach it). Always render it on a
+     light background, even in dark mode, so the form text stays readable. */
+  background: #fff;
+  color-scheme: light;
+}
+#feedback-frame {
+  display: block;
+  width: 100%;
+  /* Cap to the viewport so the form scrolls inside the dialog on short screens. */
+  height: min(60vh, 560px);
+  border: 0;
+}
+.feedback-fallback {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin-bottom: 0;
+}
+.feedback-fallback a {
+  color: inherit;
+  text-decoration: underline;
+}
+.feedback-fallback a:hover {
   color: var(--fg);
 }
 
@@ -1410,7 +1511,8 @@ button.hint-btn[aria-disabled="true"] {
   font-weight: 500;
 }
 #settings-nav > button,
-#open-stats-btn {
+#open-stats-btn,
+#open-feedback-btn {
   width: 100%;
 }
 

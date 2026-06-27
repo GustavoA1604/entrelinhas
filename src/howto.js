@@ -98,7 +98,9 @@ const CROSSWORD_BODY = `
   </p>
 `;
 
-function bodyFor(mode) {
+// The inner HTML for a mode's rules. Exported so the in-game "Como jogar?"
+// button can drop the same content into a dialog (see app.js).
+export function howtoBodyHtml(mode) {
   if (mode === "classic") return CLASSIC_BODY;
   if (mode === "crossword") return CROSSWORD_BODY;
   // "both": the menu hub explains each mode in its own labelled block.
@@ -134,7 +136,7 @@ export function initHowTo() {
         <span class="howto-title">Como jogar?</span>
         <span class="howto-chevron" aria-hidden="true">▾</span>
       </button>
-      <div class="howto-body">${bodyFor(sec.getAttribute("data-howto"))}</div>
+      <div class="howto-body">${howtoBodyHtml(sec.getAttribute("data-howto"))}</div>
     `;
     sec.querySelector(".howto-header").addEventListener("click", () => {
       collapsed = !collapsed;

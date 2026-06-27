@@ -6,7 +6,7 @@ import { parseHash, buildHash, extractSeed } from "./routes.js";
 import { copyToClipboard } from "./share-helpers.js";
 import { showToast } from "./toast.js";
 import { pickTrivia } from "./trivia.js";
-import { initHowTo } from "./howto.js";
+import { initHowTo, howtoBodyHtml } from "./howto.js";
 import { computeModeStats, computeTopWords } from "./stats.js";
 
 // Keep --app-height tracking the visible viewport (above the on-screen keyboard)
@@ -586,6 +586,68 @@ if (statsBackBtn) {
   statsBackBtn.addEventListener("click", () => {
     statsDialog.close();
     openSettings();
+  });
+}
+
+// === Feedback dialog (embedded Tally form, opened from the menu footer) ===
+// Replace TALLY_FORM_ID with the id from your form's URL (tally.so/r/<id>).
+// The query params hide Tally's chrome so the embed blends into the dialog.
+const TALLY_FORM_ID = "LZgW8O";
+const feedbackDialog = document.getElementById("feedback-dialog");
+const feedbackFrame = document.getElementById("feedback-frame");
+const feedbackOpenLink = document.getElementById("feedback-open-link");
+
+function feedbackUrl(embed) {
+  const base = embed
+    ? `https://tally.so/embed/${TALLY_FORM_ID}`
+    : `https://tally.so/r/${TALLY_FORM_ID}`;
+  // Note: no transparentBackground here on purpose. The form is designed for a
+  // light surface, so we let Tally paint its own white background (and pin the
+  // wrapper to light in CSS) instead of letting the dark dialog show through,
+  // which would leave the form's dark text unreadable.
+  const params = embed ? "?alignLeft=1&hideTitle=1&dynamicHeight=1" : "";
+  return base + params;
+}
+
+function openFeedback() {
+  if (!feedbackDialog) return;
+  // Load the iframe lazily on first open so the embed never costs anything until
+  // someone actually wants to leave feedback.
+  if (feedbackFrame && !feedbackFrame.getAttribute("src")) {
+    feedbackFrame.setAttribute("src", feedbackUrl(true));
+  }
+  if (feedbackOpenLink) feedbackOpenLink.href = feedbackUrl(false);
+  if (typeof feedbackDialog.showModal === "function") feedbackDialog.showModal();
+  else feedbackDialog.setAttribute("open", "");
+}
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-feedback]")) openFeedback();
+});
+
+// === "Como jogar?" dialog (in-game help button) ===
+const howtoDialog = document.getElementById("howto-dialog");
+const howtoDialogBody = document.getElementById("howto-dialog-body");
+
+function openHowto(mode) {
+  if (!howtoDialog || !howtoDialogBody) return;
+  howtoDialogBody.innerHTML = howtoBodyHtml(mode);
+  if (typeof howtoDialog.showModal === "function") howtoDialog.showModal();
+  else howtoDialog.setAttribute("open", "");
+}
+
+document.addEventListener("click", (e) => {
+  const trigger = e.target.closest("[data-howto-open]");
+  if (trigger) openHowto(trigger.getAttribute("data-howto-open"));
+});
+
+// Same dialog, opened from inside settings: close settings first so we don't
+// stack two modal dialogs (mirrors the Estatísticas button above).
+const openFeedbackBtn = document.getElementById("open-feedback-btn");
+if (openFeedbackBtn) {
+  openFeedbackBtn.addEventListener("click", () => {
+    settingsDialog.close();
+    openFeedback();
   });
 }
 

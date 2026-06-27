@@ -160,6 +160,8 @@
           ></span
         >
         <span class="dot">·</span>
+        <button type="button" class="footer-link" data-feedback>Feedback e sugestões</button>
+        <span class="dot">·</span>
         <span id="app-version"></span>
       </footer>
 
@@ -262,8 +264,10 @@
           <div id="upper-row" class="row bound-sentinel"></div>
         </div>
 
-        <hr class="howto-divider" />
-        <section class="howto" data-howto="classic" aria-label="Como jogar"></section>
+        <div class="game-help-actions">
+          <button type="button" class="ghost" data-howto-open="classic">Como jogar?</button>
+          <button type="button" class="ghost" data-feedback>Palavra não aceita?</button>
+        </div>
       </main>
 
       <footer class="input-area">
@@ -364,8 +368,10 @@
           </div>
         </div>
 
-        <hr class="howto-divider" />
-        <section class="howto" data-howto="crossword" aria-label="Como jogar"></section>
+        <div class="game-help-actions">
+          <button type="button" class="ghost" data-howto-open="crossword">Como jogar?</button>
+          <button type="button" class="ghost" data-feedback>Palavra não aceita?</button>
+        </div>
       </main>
 
       <footer class="input-area">
@@ -430,6 +436,10 @@
 
       <section class="settings-group">
         <button type="button" id="open-stats-btn" class="ghost">Estatísticas</button>
+      </section>
+
+      <section class="settings-group">
+        <button type="button" id="open-feedback-btn" class="ghost">Feedback e sugestões</button>
       </section>
 
       <!-- Navigation back to the menu lives here, shown only inside a game. -->
@@ -497,6 +507,38 @@
 
       <p id="stats-empty" class="stats-empty" hidden>
         Jogue uma partida para ver suas estatísticas.
+      </p>
+    </dialog>
+
+    <!-- "Como jogar?" dialog (opened from the in-game help buttons). Its body is
+         filled with the relevant mode's rules on open (see app.js). -->
+    <dialog id="howto-dialog">
+      <form method="dialog" class="dialog-close">
+        <button class="icon-close" aria-label="Fechar" title="Fechar">×</button>
+      </form>
+      <h2>Como jogar?</h2>
+      <div id="howto-dialog-body" class="howto-body"></div>
+    </dialog>
+
+    <!-- Feedback dialog: embeds a Tally form (opened from the menu footer). The
+         iframe src is filled in lazily on first open (see app.js). -->
+    <dialog id="feedback-dialog">
+      <form method="dialog" class="dialog-close">
+        <button class="icon-close" aria-label="Fechar" title="Fechar">×</button>
+      </form>
+      <h2>Feedback e sugestões</h2>
+      <div class="feedback-frame-wrap">
+        <iframe
+          id="feedback-frame"
+          title="Formulário de feedback"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+        ></iframe>
+      </div>
+      <p class="feedback-fallback">
+        Não carregou? <a id="feedback-open-link" href="#" target="_blank" rel="noopener noreferrer"
+          >Abrir o formulário em uma nova aba</a
+        >.
       </p>
     </dialog>
 
